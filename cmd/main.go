@@ -1,87 +1,100 @@
+// main.go
 package main
 
 import (
-    "fmt"
-    "github.com/rivo/tview"
-	"github.com/redis/go-redis/v9"
-    "context"
-    "time"
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/Amrit02102004/RediCLI/windows"
+	"github.com/rivo/tview"
 )
 
+func setupLogging() *os.File {
+	// Create logs directory if it doesn't exist
+	if err := os.MkdirAll("logs", 0755); err != nil {
+		log.Fatalf("Failed to create logs directory: %v", err)
+	}
+
+	// Create log file with timestamp
+	logFileName := fmt.Sprintf("redis_monitor_%s.log", time.Now().Format("20060102_150405"))
+	logFilePath := filepath.Join("logs", logFileName)
+
+	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("Failed to create log file: %v", err)
+	}
+
+	// Set up multi-writer to write logs to both file and stdout
+	log.SetOutput(logFile)
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	fmt.Printf("📝 Logging to: %s\n", logFilePath)
+	return logFile
+}
+
 func main() {
-    app := tview.NewApplication()
-    
-    // Create a form for port input
-    form := tview.NewForm()
-    textView := tview.NewTextView().
-        SetDynamicColors(true).
-        SetRegions(true).
-        SetScrollable(true).
-        SetChangedFunc(func() {
-            app.Draw()
-        })
+	// Setup logging
+	logFile := setupLogging()
+	defer logFile.Close()
 
-    // Create a flex container for layout
-    flex := tview.NewFlex().
-        SetDirection(tview.FlexRow).
-        AddItem(form, 3, 1, true).
-        AddItem(textView, 0, 1, false)
+	log.Println("Starting Redis Monitor Application")
 
-    // Add port input field
-    var port string
-    form.AddInputField("Redis Port:", "", 20, nil, func(text string) {
-        port = text
-    }).
-    AddButton("Connect", func() {
-        // Create Redis client
-        rdb := redis.NewClient(&redis.Options{
-            Addr:     fmt.Sprintf("localhost:%s", port),
-            Password: "", // no password set
-            DB:       0,  // use default DB
-        })
+	// Create application
+	app := tview.NewApplication()
+	windowManager := windows.NewWindowManager(app)
 
-        // Test connection
-        ctx := context.Background()
-        _, err := rdb.Ping(ctx).Result()
-        if err != nil {
-            textView.SetText(fmt.Sprintf("Error connecting to Redis: %v", err))
-            return
-        }
+	if windowManager == nil {
+		log.Fatal("Failed to create window manager")
+		return
+	}
 
-        textView.SetText("Connected to Redis! Monitoring logs...\n")
-        
-        // Start monitoring in a goroutine
-        go func() {
-            pubsub := rdb.Subscribe(ctx, "__keyspace@0__:*")
-            defer pubsub.Close()
+	// Create UI components
+	log.Println("Creating UI components")
+	logView := windowManager.CreateLogView()
+	extraView := windowManager.CreateExtraView()
+	connectionForm := windowManager.CreateConnectionForm()
 
-            // Monitor all commands
-            _, err := rdb.Do(ctx, "MONITOR").Result()
-            if err != nil {
-                textView.SetText(fmt.Sprintf("Error starting monitor: %v", err))
-                return
-            }
+	// Set custom error handler
+	// windowManager.SetErrorHandler(func(err error) {
+	// 	log.Printf("Application error: %v", err)
+	// 	app.QueueUpdateDraw(func() {
+	// 		currentText := logView.GetText(true)
+	// 		errorMsg := fmt.Sprintf("%s\n❌ Error: %v", currentText, err)
+	// 		logView.SetText(errorMsg)
+	// 	})
+	// })
 
-            for {
-                msg, err := pubsub.ReceiveMessage(ctx)
-                if err != nil {
-                    textView.SetText(fmt.Sprintf("%s\nError receiving message: %v", textView.GetText(true), err))
-                    continue
-                }
+	// Create layout
+	log.Println("Setting up application layout")
+	leftColumn := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(logView, 0, 1, false).
+		AddItem(connectionForm, 7, 1, true)
 
-                // Append new log with timestamp
-                timestamp := time.Now().Format("15:04:05")
-                newLog := fmt.Sprintf("[%s] %s: %s\n", timestamp, msg.Channel, msg.Payload)
-                
-                app.QueueUpdateDraw(func() {
-                    currentText := textView.GetText(true)
-                    textView.SetText(currentText + newLog)
-                })
-            }
-        }()
-    })
+	mainLayout := tview.NewFlex().
+		AddItem(leftColumn, 0, 2, true).
+		AddItem(extraView, 0, 1, false)
 
-    if err := app.SetRoot(flex, true).EnableMouse(true).Run(); err != nil {
-        panic(err)
-    }
+	// Add application-level keyboard handling
+	// app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+	// 	switch event.Key() {
+	// 	case tcell.KeyCtrlC:
+	// 		log.Println("Received Ctrl+C, shutting down...")
+	// 		app.Stop()
+	// 		return nil
+	// 	}
+	// 	return event
+	// })
+
+	// Run application
+	log.Println("Starting application UI")
+	if err := app.SetRoot(mainLayout, true).EnableMouse(true).Run(); err != nil {
+		log.Printf("Application crashed: %v", err)
+		panic(err)
+	}
+
+	log.Println("Application shutting down gracefully")
 }
