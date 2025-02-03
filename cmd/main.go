@@ -1,11 +1,12 @@
 package cmd
 
 import (
-    "fmt"
-    "strings"
-    "github.com/rivo/tview"
-    "github.com/Amrit02102004/RediCLI/windows"
-     "github.com/gdamore/tcell/v2"
+	"fmt"
+	"strings"
+
+	"github.com/Amrit02102004/RediCLI/windows"
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 )
 
 func Func() {
@@ -14,32 +15,11 @@ func Func() {
     // Create the main flex container
     flex := tview.NewFlex()
     
-    // Create left side form for connection
     form := tview.NewForm()
     
-    // Create center command input and key-value display
-    cmdFlex := tview.NewFlex().SetDirection(tview.FlexRow)
-    
-    // Create key-value display
-    kvDisplay := tview.NewTextView().
-        SetDynamicColors(true).
-        SetChangedFunc(func() {
-            app.Draw()
-        })
-    kvDisplay.SetBorder(true).SetTitle(" Redis Data ")
-    
-    // Create command input field
-    cmdInput := tview.NewInputField().
-        SetLabel("> ").
-        SetFieldWidth(0)
-    
-    // Create right side text view for logs
-    logs := tview.NewTextView().
-        SetDynamicColors(true).
-        SetChangedFunc(func() {
-            app.Draw()
-        })
-    
+    logDisplay := windows.Win2(app)
+    cmdFlex, kvDisplay, cmdInput := windows.Win3(app)
+
     // Add form fields
     var host, port string
     form.AddInputField("Host", "localhost", 20, nil, func(text string) {
@@ -57,7 +37,7 @@ func Func() {
         if redis.IsConnected() {
             keys, err := redis.GetAllKeys()
             if err != nil {
-                logs.Write([]byte(fmt.Sprintf("Error fetching keys: %v\n", err)))
+                logDisplay.Write([]byte(fmt.Sprintf("Error fetching keys: %v\n", err)))
                 return
             }
             
@@ -65,13 +45,13 @@ func Func() {
             for _, key := range keys {
                 value, err := redis.GetValue(key)
                 if err != nil {
-                    logs.Write([]byte(fmt.Sprintf("Error fetching value for %s: %v\n", key, err)))
+                    logDisplay.Write([]byte(fmt.Sprintf("Error fetching value for %s: %v\n", key, err)))
                     continue
                 }
                 
                 ttl, err := redis.GetTTL(key)
                 if err != nil {
-                    logs.Write([]byte(fmt.Sprintf("Error fetching TTL for %s: %v\n", key, err)))
+                    logDisplay.Write([]byte(fmt.Sprintf("Error fetching TTL for %s: %v\n", key, err)))
                     continue
                 }
                 
@@ -94,13 +74,13 @@ func Func() {
             return
         }
         
-        logs.Write([]byte(fmt.Sprintf("> %s\n", cmd)))
+        logDisplay.Write([]byte(fmt.Sprintf("> %s\n", cmd)))
         
         result, err := redis.ExecuteCommand(cmd)
         if err != nil {
-            logs.Write([]byte(fmt.Sprintf("[red]Error:[white] %v\n", err)))
+            logDisplay.Write([]byte(fmt.Sprintf("[red]Error:[white] %v\n", err)))
         } else {
-            logs.Write([]byte(fmt.Sprintf("[green]Result:[white] %v\n", result)))
+            logDisplay.Write([]byte(fmt.Sprintf("[green]Result:[white] %v\n", result)))
         }
         
         cmdInput.SetText("")
@@ -109,16 +89,16 @@ func Func() {
     
     // Add buttons
     form.AddButton("Connect", func() {
-        logs.SetText("")
-        logs.Write([]byte(fmt.Sprintf("Connecting to %s:%s ...\n", host, port)))
+        logDisplay.SetText("")
+        logDisplay.Write([]byte(fmt.Sprintf("Connecting to %s:%s ...\n", host, port)))
         
         err := redis.Connect(host, port)
         if err != nil {
-            logs.Write([]byte(fmt.Sprintf("Error: %v\n", err)))
+            logDisplay.Write([]byte(fmt.Sprintf("Error: %v\n", err)))
             return
         }
         
-        logs.Write([]byte("Connected!\n"))
+        logDisplay.Write([]byte("Connected!\n"))
         refreshData()  // Initial data load
     })
     
@@ -133,7 +113,7 @@ func Func() {
     
     // Set form styling
     form.SetBorder(true).SetTitle(" Redis Connection ")
-    logs.SetBorder(true).SetTitle(" Logs ")
+    logDisplay.SetBorder(true).SetTitle(" logDisplay ")
     
     // Add command input and key-value display to center flex
     cmdFlex.AddItem(kvDisplay, 0, 3, false).
@@ -142,7 +122,7 @@ func Func() {
     // Create the layout with three panels
     flex.AddItem(form, 30, 1, true).
         AddItem(cmdFlex, 0, 2, false).
-        AddItem(logs, 30, 1, false)
+        AddItem(logDisplay, 30, 1, false)
     
     // Run the application
     if err := app.SetRoot(flex, true).EnableMouse(true).Run(); err != nil {
