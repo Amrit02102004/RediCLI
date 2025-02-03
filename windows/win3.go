@@ -4,17 +4,14 @@ package windows
 import (
 	"fmt"
 	"strings"
-    
-    "github.com/Amrit02102004/RediCLI/utils"
+
+	"github.com/Amrit02102004/RediCLI/utils"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-    
 )
 
-func Win3(app *tview.Application) (*tview.Flex, *tview.TextView, *tview.InputField) {
+func Win3(app *tview.Application , logDisplay *tview.TextView, redis *utils.RedisConnection ) (*tview.Flex, *tview.TextView, *tview.InputField) {
     cmdFlex := tview.NewFlex().SetDirection(tview.FlexRow)
-    logDisplay := Win2(app)
-    redis := utils.NewRedisConnection()
     // Create key-value display
     kvDisplay := tview.NewTextView().
         SetDynamicColors(true).
@@ -47,8 +44,10 @@ func Win3(app *tview.Application) (*tview.Flex, *tview.TextView, *tview.InputFie
         }
         
         cmdInput.SetText("")
-        refreshData(redis, logDisplay, kvDisplay) 
+        RefreshData(logDisplay, kvDisplay, redis)  
     })
     
+    
+
     return cmdFlex, kvDisplay, cmdInput
 }

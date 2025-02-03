@@ -3,13 +3,12 @@ package windows
 import (
 	"fmt"
 
+	"github.com/Amrit02102004/RediCLI/utils"
 	"github.com/rivo/tview"
-    "github.com/Amrit02102004/RediCLI/utils"
+)	
 
-)
-
-func refreshData(redis *utils.RedisConnection, logDisplay *tview.TextView, kvDisplay *tview.TextView) {
-        if redis.IsConnected() {
+func RefreshData( logDisplay *tview.TextView, kvDisplay *tview.TextView, redis *utils.RedisConnection) {
+	if redis.IsConnected() {
             keys, err := redis.GetAllKeys()
             if err != nil {
                 logDisplay.Write([]byte(fmt.Sprintf("Error fetching keys: %v\n", err)))
@@ -36,30 +35,28 @@ func refreshData(redis *utils.RedisConnection, logDisplay *tview.TextView, kvDis
                 kvDisplay.Write([]byte("------------------------\n"))
             }
         }
-    }
+}
 
-func ConnectionForm(app *tview.Application  ) (*tview.Form) {	
-
+func ConnectionForm( app *tview.Application, logDisplay *tview.TextView, redis *utils.RedisConnection, kvDisplay *tview.TextView) *tview.Form  {
     form := tview.NewForm()
-		logDisplay := Win2(app) 
-    redis := utils.NewRedisConnection() // Create Redis connection instance 
-		_, kvDisplay, _ := Win3(app) 
 
-		
-
-		// Add form fields
-    var host, port string
+		var host, port string
     form.AddInputField("Host", "localhost", 20, nil, func(text string) {
         host = text
     })
     form.AddInputField("Port", "6379", 20, nil, func(text string) {
         port = text
     })
-    
+
 		// Add buttons
     form.AddButton("Connect", func() {
         logDisplay.SetText("")
+        if(host == "" && port == "") {
+            host = "localhost"
+            port = "6379"
+        }
         logDisplay.Write([]byte(fmt.Sprintf("Connecting to %s:%s ...\n", host, port)))
+        
         err := redis.Connect(host, port)
         if err != nil {
             logDisplay.Write([]byte(fmt.Sprintf("Error: %v\n", err)))
@@ -67,11 +64,11 @@ func ConnectionForm(app *tview.Application  ) (*tview.Form) {
         }
         
         logDisplay.Write([]byte("Connected!\n"))
-        refreshData(redis, logDisplay ,kvDisplay)  // Initial data load
+        RefreshData(logDisplay,kvDisplay,redis)  // Initial data load
     })
     
     form.AddButton("Refresh", func() {
-        refreshData(redis, logDisplay ,kvDisplay)  // Initial data load
+        RefreshData(logDisplay,kvDisplay,redis)
     })
     
     form.AddButton("Quit", func() {
@@ -82,5 +79,5 @@ func ConnectionForm(app *tview.Application  ) (*tview.Form) {
     // Set form styling
     form.SetBorder(true).SetTitle(" Redis Connection ")
 		
-		return form ;
+		return form
 }
