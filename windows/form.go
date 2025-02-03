@@ -40,22 +40,24 @@ func RefreshData( logDisplay *tview.TextView, kvDisplay *tview.TextView, redis *
 func ConnectionForm( app *tview.Application, logDisplay *tview.TextView, redis *utils.RedisConnection, kvDisplay *tview.TextView) *tview.Form  {
     form := tview.NewForm()
 
-		var host, port string
-    form.AddInputField("Host", "localhost", 20, nil, func(text string) {
+    var host, port string
+    form.AddInputField("Host/URL", "localhost", 50, nil, func(text string) {
         host = text
     })
-    form.AddInputField("Port", "6379", 20, nil, func(text string) {
+    form.AddInputField("Port (if not using full URL)", "6379", 20, nil, func(text string) {
         port = text
     })
 
-		// Add buttons
     form.AddButton("Connect", func() {
         logDisplay.SetText("")
-        if(host == "" && port == "") {
+        
+        // Default to localhost if no input
+        if host == "" {
             host = "localhost"
             port = "6379"
         }
-        logDisplay.Write([]byte(fmt.Sprintf("Connecting to %s:%s ...\n", host, port)))
+        
+        logDisplay.Write([]byte(fmt.Sprintf("Connecting to %s ...\n", host)))
         
         err := redis.Connect(host, port)
         if err != nil {
@@ -71,13 +73,7 @@ func ConnectionForm( app *tview.Application, logDisplay *tview.TextView, redis *
         RefreshData(logDisplay,kvDisplay,redis)
     })
     
-    // form.AddButton("Quit", func() {
-    //     redis.Close()
-    //     app.Stop()
-    // })
-    
-    // Set form styling
     form.SetBorder(true).SetTitle(" Redis Connection ")
-		
-		return form
+    
+    return form
 }

@@ -20,11 +20,22 @@ func NewRedisConnection() *RedisConnection {
 }
 
 func (rc *RedisConnection) Connect(host string, port string) error {
-    rc.client = redis.NewClient(&redis.Options{
-        Addr:     fmt.Sprintf("%s:%s", host, port),
-        Password: "", // no password set
-        DB:       0,  // use default DB
-    })
+    // Check if the input looks like a full Redis URL
+    if strings.HasPrefix(host, "redis://") || strings.HasPrefix(host, "rediss://") {
+        opts, err := redis.ParseURL(host)
+        if err != nil {
+            return fmt.Errorf("failed to parse Redis URL: %v", err)
+        }
+
+        rc.client = redis.NewClient(opts)
+    } else {
+        // Existing localhost/custom host connection logic
+        rc.client = redis.NewClient(&redis.Options{
+            Addr:     fmt.Sprintf("%s:%s", host, port),
+            Password: "", // no password set
+            DB:       0,  // use default DB
+        })
+    }
 
     // Test the connection
     _, err := rc.client.Ping(rc.ctx).Result()
