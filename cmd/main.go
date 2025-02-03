@@ -16,7 +16,7 @@ func Func() {
 	cmdFlex, kvDisplay, _, flex := windows.Win3(app, logDisplay, redis)
 
 	form := windows.ConnectionForm(app, logDisplay, redis, kvDisplay)
-	flex.AddItem(form, 30, 1, true).
+	flex.AddItem(form, 40, 1, true).
 		AddItem(cmdFlex, 0, 2, false).
 		AddItem(logDisplay, 30, 1, false)
 
