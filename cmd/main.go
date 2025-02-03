@@ -91,6 +91,10 @@ func Func() {
     // Add buttons
     form.AddButton("Connect", func() {
         logDisplay.SetText("")
+        if(host == "" && port == "") {
+            host = "localhost"
+            port = "6379"
+        }
         logDisplay.Write([]byte(fmt.Sprintf("Connecting to %s:%s ...\n", host, port)))
         
         err := redis.Connect(host, port)
