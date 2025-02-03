@@ -164,6 +164,7 @@ func KeyFilterUpdateForm(app *tview.Application, redis *utils.RedisConnection, l
 			logDisplay.Write([]byte(fmt.Sprintf("[green]Key '%s' updated successfully[white]\n", key)))
 			RefreshData(logDisplay, kvDisplay, redis)
 			app.SetRoot(flex, true)
+			RefreshData(logDisplay, kvDisplay, redis)  
 		}
 	})
 
