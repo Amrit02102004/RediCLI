@@ -4,6 +4,7 @@ go 1.23.5
 
 require (
 	github.com/gdamore/tcell/v2 v2.7.1
+	github.com/lithammer/fuzzysearch v1.1.8
 	github.com/redis/go-redis/v9 v9.7.0
 	github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57
 )
