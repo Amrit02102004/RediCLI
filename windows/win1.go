@@ -21,14 +21,10 @@ type KeyData struct {
 func Win1(app *tview.Application, redis *utils.RedisConnection) *tview.Flex {
 	flex := tview.NewFlex().SetDirection(tview.FlexRow)
 	table := tview.NewTable().
-	SetBorders(true).
-	SetFixed(1, 0).
-	SetSeparator(tview.Borders.Vertical)
-	
+		SetBorders(true).
+		SetFixed(1, 0).
+		SetSeparator(tview.Borders.Vertical)
 
-	table.SetTitle(" Redis Key Details")
-	table.SetTitleAlign(tview.AlignLeft)
-	table.SetBorder(true)
 
 	headerCells := []string{"Key", "Value", "TTL", "Memory"}
 	for i, header := range headerCells {
@@ -66,10 +62,10 @@ func Win1(app *tview.Application, redis *utils.RedisConnection) *tview.Flex {
 			}
 
 			ttl, err := redis.GetTTL(key)
-			ttlStr := "-"
+			ttlStr := "-1"
 			if err == nil {
 				if ttl < 0 {
-					ttlStr = "-"
+					ttlStr = "-1"
 				} else {
 					ttlStr = fmt.Sprintf("%.0f", ttl.Seconds())
 				}
@@ -119,7 +115,20 @@ func Win1(app *tview.Application, redis *utils.RedisConnection) *tview.Flex {
 
 	refreshTableData()
 
-	flex.AddItem(table, 0, 1, true)
+	form := tview.NewForm()
+	form.AddButton("Refresh", func() {
+		refreshTableData()
+	})
+	form.AddButton("Quit", func() {
+		redis.Close()
+		app.Stop()
+	})
+
+	layout := tview.NewFlex().SetDirection(tview.FlexRow)
+	layout.AddItem(table, 0, 9, true)
+	layout.AddItem(form, 0, 2, false)
+
+	flex.AddItem(layout, 0, 1, true)
 
 	return flex
 }
