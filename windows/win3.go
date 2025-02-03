@@ -1,4 +1,3 @@
-// Create center command input and key-value display
 package windows
 
 import (
@@ -10,8 +9,28 @@ import (
 	"github.com/rivo/tview"
 )
 
-func Win3(app *tview.Application , logDisplay *tview.TextView, redis *utils.RedisConnection ) (*tview.Flex, *tview.TextView, *tview.InputField) {
+type CommandSuggestion struct {
+    command     string
+    description string
+}
+
+var commandSuggestions = []CommandSuggestion{
+    {"get", "Retrieve the value of a key"},
+    {"set", "Set the string value of a key"},
+    {"del", "Delete a key"},
+    {"keys", "Find all keys matching a pattern"},
+    {"ttl", "Get the time to live for a key"},
+    {"expire", "Set a key's time to live in seconds"},
+}
+
+func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.RedisConnection) (*tview.Flex, *tview.TextView, *tview.InputField) {
     cmdFlex := tview.NewFlex().SetDirection(tview.FlexRow)
+    
+    // Create suggestion display
+    suggestionDisplay := tview.NewTextView().
+        SetDynamicColors(true).
+        SetTextColor(tcell.ColorGray)
+    
     // Create key-value display
     kvDisplay := tview.NewTextView().
         SetDynamicColors(true).
@@ -24,6 +43,32 @@ func Win3(app *tview.Application , logDisplay *tview.TextView, redis *utils.Redi
     cmdInput := tview.NewInputField().
         SetLabel("> ").
         SetFieldWidth(0)
+    
+    currentSuggestionIndex := 0
+    var currentSuggestions []CommandSuggestion
+
+    cmdInput.SetChangedFunc(func(text string) {
+        currentSuggestions = filterSuggestions(text)
+        if len(currentSuggestions) > 0 {
+            suggestionText := ""
+            for _, sugg := range currentSuggestions {
+                suggestionText += fmt.Sprintf("[gray]%s[white] - %s\n", sugg.command, sugg.description)
+            }
+            suggestionDisplay.SetText(suggestionText)
+        } else {
+            suggestionDisplay.SetText("")
+        }
+    })
+
+    cmdInput.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+        if event.Key() == tcell.KeyTab && len(currentSuggestions) > 0 {
+            currentSuggestionIndex = (currentSuggestionIndex + 1) % len(currentSuggestions)
+            cmdInput.SetText(currentSuggestions[currentSuggestionIndex].command)
+            return nil
+        }
+        return event
+    })
+    
     cmdInput.SetDoneFunc(func(key tcell.Key) {
         if key != tcell.KeyEnter {
             return
@@ -47,7 +92,24 @@ func Win3(app *tview.Application , logDisplay *tview.TextView, redis *utils.Redi
         RefreshData(logDisplay, kvDisplay, redis)  
     })
     
-    
+    // Add suggestion display and command input to the flex container
+    cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+    cmdFlex.AddItem(cmdInput, 1, 0, true)
 
     return cmdFlex, kvDisplay, cmdInput
+}
+
+func filterSuggestions(input string) []CommandSuggestion {
+    input = strings.ToLower(strings.TrimSpace(input))
+    if input == "" {
+        return nil
+    }
+
+    var matches []CommandSuggestion
+    for _, sugg := range commandSuggestions {
+        if strings.HasPrefix(sugg.command, input) {
+            matches = append(matches, sugg)
+        }
+    }
+    return matches
 }
