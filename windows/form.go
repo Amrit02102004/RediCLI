@@ -1,13 +1,14 @@
-// Create left side form for connection details
 package windows
 
 import (
 	"fmt"
 
 	"github.com/rivo/tview"
+    "github.com/Amrit02102004/RediCLI/utils"
+
 )
 
-func refreshData(redis *RedisConnection, logDisplay *tview.TextView, kvDisplay *tview.TextView) {
+func refreshData(redis *utils.RedisConnection, logDisplay *tview.TextView, kvDisplay *tview.TextView) {
         if redis.IsConnected() {
             keys, err := redis.GetAllKeys()
             if err != nil {
@@ -41,7 +42,7 @@ func ConnectionForm(app *tview.Application  ) (*tview.Form) {
 
     form := tview.NewForm()
 		logDisplay := Win2(app) 
-    redis := NewRedisConnection() // Create Redis connection instance 
+    redis := utils.NewRedisConnection() // Create Redis connection instance 
 		_, kvDisplay, _ := Win3(app) 
 
 		

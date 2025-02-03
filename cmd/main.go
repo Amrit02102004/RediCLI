@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Amrit02102004/RediCLI/windows"
+	"github.com/Amrit02102004/RediCLI/utils"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -30,7 +31,7 @@ func Func() {
     })
     
     // Create Redis connection instance
-    redis := windows.NewRedisConnection()
+    redis := utils.NewRedisConnection()
     
     // Function to refresh key-value display
     refreshData := func() {
