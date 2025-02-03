@@ -66,10 +66,10 @@ func Win1(app *tview.Application, redis *utils.RedisConnection) *tview.Flex {
 			}
 
 			ttl, err := redis.GetTTL(key)
-			ttlStr := "-"
+			ttlStr := "-1"
 			if err == nil {
 				if ttl < 0 {
-					ttlStr = "-"
+					ttlStr = "-1"
 				} else {
 					ttlStr = fmt.Sprintf("%.0f", ttl.Seconds())
 				}
