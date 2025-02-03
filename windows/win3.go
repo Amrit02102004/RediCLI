@@ -8,8 +8,8 @@ import (
 
 	"github.com/Amrit02102004/RediCLI/utils"
 	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"github.com/lithammer/fuzzysearch/fuzzy"
+	"github.com/rivo/tview"
 )
 
 // Enhanced command suggestions with more metadata
@@ -197,7 +197,8 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 	// Create suggestion display
 	suggestionDisplay := tview.NewTextView().
 		SetDynamicColors(true).
-		SetTextColor(tcell.ColorGray)
+		SetTextColor(tcell.ColorGray).
+        SetTextAlign(tview.AlignCenter)
 	
 	// Create key-value display
 	kvDisplay := tview.NewTextView().
@@ -279,6 +280,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 	})
 	
 	// Add suggestion display and command input to the flex container
+    cmdFlex.AddItem(kvDisplay, 0, 1, false)
 	cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
 	cmdFlex.AddItem(cmdInput, 1, 0, true)
 

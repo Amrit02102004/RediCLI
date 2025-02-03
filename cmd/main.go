@@ -13,7 +13,7 @@ func Func() {
 	redis := utils.NewRedisConnection()
 
 	logDisplay := windows.Win2(app)
-	cmdFlex, kvDisplay, cmdInput, flex := windows.Win3(app, logDisplay, redis)
+	cmdFlex, kvDisplay, _, flex := windows.Win3(app, logDisplay, redis)
 
 	form := windows.ConnectionForm(app, logDisplay, redis, kvDisplay)
 	flex.AddItem(form, 30, 1, true).
@@ -37,8 +37,6 @@ func Func() {
 		}
 	}()
 
-	cmdFlex.AddItem(kvDisplay, 0, 3, false).
-		AddItem(cmdInput, 3, 1, true)
 
 	if err := app.SetRoot(flex, true).EnableMouse(true).Run(); err != nil {
 		panic(err)
