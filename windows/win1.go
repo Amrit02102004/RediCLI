@@ -3,6 +3,8 @@ package windows
 import (
     "context"
     "fmt"
+    "strings"
+    "time"
     "github.com/redis/go-redis/v9"
 )
 
@@ -38,4 +40,53 @@ func (rc *RedisConnection) Close() error {
         return rc.client.Close()
     }
     return nil
+}
+
+func (rc *RedisConnection) IsConnected() bool {
+    return rc.client != nil
+}
+
+func (rc *RedisConnection) GetAllKeys() ([]string, error) {
+    if rc.client == nil {
+        return nil, fmt.Errorf("not connected to Redis")
+    }
+    
+    return rc.client.Keys(rc.ctx, "*").Result()
+}
+
+func (rc *RedisConnection) GetValue(key string) (string, error) {
+    if rc.client == nil {
+        return "", fmt.Errorf("not connected to Redis")
+    }
+    
+    return rc.client.Get(rc.ctx, key).Result()
+}
+
+func (rc *RedisConnection) GetTTL(key string) (time.Duration, error) {
+    if rc.client == nil {
+        return 0, fmt.Errorf("not connected to Redis")
+    }
+    
+    return rc.client.TTL(rc.ctx, key).Result()
+}
+
+func (rc *RedisConnection) ExecuteCommand(cmd string) (interface{}, error) {
+    if rc.client == nil {
+        return nil, fmt.Errorf("not connected to Redis")
+    }
+    
+    // Split the command into parts
+    parts := strings.Fields(cmd)
+    if len(parts) == 0 {
+        return nil, fmt.Errorf("empty command")
+    }
+    
+    // Create a slice of interfaces starting with the command
+    args := make([]interface{}, len(parts))
+    for i, part := range parts {
+        args[i] = part
+    }
+    
+    // Execute the command
+    return rc.client.Do(rc.ctx, args...).Result()
 }
