@@ -64,9 +64,6 @@ func Func() {
 		windows.RefreshData(logDisplay, kvDisplay, redis)
 	})
 
-	cmdFlex.AddItem(kvDisplay, 0, 3, false).
-		AddItem(cmdInput, 3, 1, true)
-
 	if err := app.SetRoot(flex, true).EnableMouse(true).Run(); err != nil {
 		panic(err)
 	}

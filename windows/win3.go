@@ -26,11 +26,6 @@ var commandSuggestions = []CommandSuggestion{
 func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.RedisConnection) (*tview.Flex, *tview.TextView, *tview.InputField) {
     cmdFlex := tview.NewFlex().SetDirection(tview.FlexRow)
     
-    // Create suggestion display
-    suggestionDisplay := tview.NewTextView().
-        SetDynamicColors(true).
-        SetTextColor(tcell.ColorGray)
-    
     // Create key-value display
     kvDisplay := tview.NewTextView().
         SetDynamicColors(true).
@@ -38,6 +33,14 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
             app.Draw()
         })
     kvDisplay.SetBorder(true).SetTitle(" Redis Data ")
+    
+    // Create suggestion display
+    suggestionDisplay := tview.NewTextView()
+    suggestionDisplay.
+        SetDynamicColors(true).
+        SetTextColor(tcell.ColorGray).
+        SetBackgroundColor(tcell.ColorDefault)
+    suggestionDisplay.SetTextAlign(tview.AlignCenter)
     
     // Create command input field
     cmdInput := tview.NewInputField().
@@ -54,9 +57,10 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
             for _, sugg := range currentSuggestions {
                 suggestionText += fmt.Sprintf("[gray]%s[white] - %s\n", sugg.command, sugg.description)
             }
-            suggestionDisplay.SetText(suggestionText)
+            suggestionDisplay.Clear()
+            fmt.Fprintf(suggestionDisplay, suggestionText)
         } else {
-            suggestionDisplay.SetText("")
+            suggestionDisplay.Clear()
         }
     })
 
@@ -92,10 +96,9 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
         RefreshData(logDisplay, kvDisplay, redis)  
     })
     
-    // Add suggestion display and command input to the flex container
-    cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
-    cmdFlex.AddItem(cmdInput, 1, 0, true)
-
+    cmdFlex.AddItem(kvDisplay, 0, 3, false).
+        AddItem(suggestionDisplay, 1, 0, false). 
+        AddItem(cmdInput, 1,1,false)
     return cmdFlex, kvDisplay, cmdInput
 }
 

@@ -71,10 +71,10 @@ func ConnectionForm( app *tview.Application, logDisplay *tview.TextView, redis *
         RefreshData(logDisplay,kvDisplay,redis)
     })
     
-    form.AddButton("Quit", func() {
-        redis.Close()
-        app.Stop()
-    })
+    // form.AddButton("Quit", func() {
+    //     redis.Close()
+    //     app.Stop()
+    // })
     
     // Set form styling
     form.SetBorder(true).SetTitle(" Redis Connection ")
