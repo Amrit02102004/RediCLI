@@ -26,7 +26,7 @@ func Win1(app *tview.Application, redis *utils.RedisConnection) *tview.Flex {
 		SetSeparator(tview.Borders.Vertical)
 
 
-	headerCells := []string{"Key", "Value", "TTL", "Memory"}
+	headerCells := []string{"Key", "Value", "TTL", "Memo"}
 	for i, header := range headerCells {
 		cell := tview.NewTableCell(header).
 			SetTextColor(tcell.ColorYellow).
@@ -102,7 +102,7 @@ func Win1(app *tview.Application, redis *utils.RedisConnection) *tview.Flex {
 			table.SetCell(rowIndex, 0, tview.NewTableCell(data.key).SetExpansion(1))
 			table.SetCell(rowIndex, 1, tview.NewTableCell(data.value).SetExpansion(1))
 			table.SetCell(rowIndex, 2, tview.NewTableCell(data.ttl).SetExpansion(1))
-			table.SetCell(rowIndex, 3, tview.NewTableCell(fmt.Sprintf("%d", data.memory)).SetExpansion(1))
+			table.SetCell(rowIndex, 3, tview.NewTableCell(fmt.Sprintf("%d B", data.memory)).SetExpansion(1))
 		}
 	}
 
