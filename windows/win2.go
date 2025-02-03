@@ -1,9 +1,9 @@
-	// Create right side text view for logs
+// Create right side text view for logs
 
 package windows
 
 import (
-		"github.com/rivo/tview"
+	"github.com/rivo/tview"
 )
 
 func Win2(app *tview.Application) *tview.TextView {
@@ -12,5 +12,6 @@ func Win2(app *tview.Application) *tview.TextView {
         SetChangedFunc(func() {
             app.Draw()
         })
+    logs.SetBorder(true).SetTitle(" Logs ")
     return logs
 }
