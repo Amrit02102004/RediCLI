@@ -1,5 +1,4 @@
-// main.go
-package main
+package cmd
 
 import (
 	"fmt"
@@ -35,7 +34,7 @@ func setupLogging() *os.File {
 	return logFile
 }
 
-func main() {
+func Main() {
 	// Setup logging
 	logFile := setupLogging()
 	defer logFile.Close()

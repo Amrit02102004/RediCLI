@@ -85,7 +85,7 @@ func (w *WindowManager) handleConnect() {
 	port := w.form.GetFormItem(1).(*tview.InputField).GetText()
 	password := w.form.GetFormItem(2).(*tview.InputField).GetText()
 
-	redisAddr := fmt.Sprintf("http://%s:%s", host, port)
+	redisAddr := fmt.Sprintf("%s:%s", host, port)
 	options := &redis.Options{
 		Addr:        redisAddr,
 		DB:          0,
