@@ -37,17 +37,25 @@ func RefreshData( logDisplay *tview.TextView, kvDisplay *tview.TextView, redis *
         }
 }
 
-func ConnectionForm( app *tview.Application, logDisplay *tview.TextView, redis *utils.RedisConnection, kvDisplay *tview.TextView) *tview.Form  {
+func ConnectionForm(app *tview.Application, logDisplay *tview.TextView, redis *utils.RedisConnection, kvDisplay *tview.TextView) tview.Primitive {
+    // Create the form
     form := tview.NewForm()
 
     var host, port string
-    form.AddInputField("Host/URL", "localhost", 50, nil, func(text string) {
+    form.AddInputField("Host/URL*    ", "", 22, nil, func(text string) {
         host = text
     })
-    form.AddInputField("Port (if not using full URL)", "6379", 20, nil, func(text string) {
+    form.AddInputField("Port   ", "", 22, nil, func(text string) {
         port = text
     })
 
+    // Create Flex layout
+    flex := tview.NewFlex().SetDirection(tview.FlexRow)
+
+    // Add the form items directly into Flex
+    flex.AddItem(form, 0, 1, false)
+
+    // Add other components (buttons, text views)
     form.AddButton("Connect", func() {
         logDisplay.SetText("")
         
@@ -66,14 +74,16 @@ func ConnectionForm( app *tview.Application, logDisplay *tview.TextView, redis *
         }
         
         logDisplay.Write([]byte("Connected!\n"))
-        RefreshData(logDisplay,kvDisplay,redis)  // Initial data load
+        RefreshData(logDisplay, kvDisplay, redis)  // Initial data load
     })
     
     form.AddButton("Refresh", func() {
-        RefreshData(logDisplay,kvDisplay,redis)
+        RefreshData(logDisplay, kvDisplay, redis)
     })
+
+    // Set up the overall layout for the application
+    flex.SetBorder(true).SetTitle(" Redis Connection ")
     
-    form.SetBorder(true).SetTitle(" Redis Connection ")
-    
-    return form
+    return flex
 }
+
