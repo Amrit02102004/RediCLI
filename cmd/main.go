@@ -27,7 +27,7 @@ func Func() {
 					flex.RemoveItem(form)
 					flex.RemoveItem(cmdFlex)
 					flex.RemoveItem(logDisplay)
-					flex.AddItem(windows.Win1(app, redis), 40, 1, true).
+					flex.AddItem(windows.Win1(app, redis, kvDisplay), 40, 1, true).
 						AddItem(cmdFlex, 0, 2, false).
 						AddItem(logDisplay, 30, 1, false)
 				})
@@ -36,7 +36,6 @@ func Func() {
 			time.Sleep(1 * time.Second)
 		}
 	}()
-
 
 	if err := app.SetRoot(flex, true).EnableMouse(true).Run(); err != nil {
 		panic(err)

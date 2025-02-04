@@ -18,11 +18,11 @@ type ConnectionConfig struct {
 }
 
 func getConnectionsFilePath() string {
-    homeDir, err := os.UserHomeDir()
-    if err != nil {
-        return filepath.Join(".redicli", "connections.json")
-    }
-    return filepath.Join(homeDir, ".redicli", "connections.json")
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return filepath.Join(".redicli", "connections.json")
+	}
+	return filepath.Join(homeDir, ".redicli", "connections.json")
 }
 
 func saveConnection(config ConnectionConfig) error {
@@ -104,9 +104,9 @@ func FormatConnectionsList(connections []ConnectionConfig) string {
 	}
 
 	var builder strings.Builder
-	builder.WriteString("[yellow]Saved Redis Connections:[white]\n")
+	builder.WriteString("[yellow]Saved Redis Connections:[white]\n\n")
 	for _, conn := range connections {
-		builder.WriteString(fmt.Sprintf("• [green]%s[white]: %s:%s\n", 
+		builder.WriteString(fmt.Sprintf("• [green]%s[white]: %s:%s\n",
 			conn.Name, conn.Host, conn.Port))
 	}
 	return builder.String()
@@ -114,7 +114,7 @@ func FormatConnectionsList(connections []ConnectionConfig) string {
 
 func deleteConnectionByName(name string) error {
 	filePath := getConnectionsFilePath()
-	
+
 	// Read existing connections
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -170,15 +170,15 @@ func ConnectionForm(app *tview.Application, logDisplay *tview.TextView, redis *u
 	form := tview.NewForm()
 
 	var name, host, port string
-	
+
 	form.AddInputField("Connection Name*", "", 18, nil, func(text string) {
 		name = text
 	})
-	
+
 	form.AddInputField("Host/URL*    ", "", 18, nil, func(text string) {
 		host = text
 	})
-	
+
 	form.AddInputField("Port   ", "", 18, nil, func(text string) {
 		port = text
 	})
@@ -192,13 +192,13 @@ func ConnectionForm(app *tview.Application, logDisplay *tview.TextView, redis *u
 	// Add other components (buttons, text views)
 	form.AddButton("Save & Connect", func() {
 		logDisplay.SetText("")
-		
+
 		// Validate inputs
 		if name == "" {
 			logDisplay.Write([]byte("[red]Error: Connection Name is required[white]\n"))
 			return
 		}
-		
+
 		// Default to localhost if no input
 		if host == "" {
 			host = "localhost"
@@ -206,33 +206,33 @@ func ConnectionForm(app *tview.Application, logDisplay *tview.TextView, redis *u
 		if port == "" {
 			port = "6379"
 		}
-		
+
 		// Create connection config
 		config := ConnectionConfig{
 			Name: name,
 			Host: host,
 			Port: port,
 		}
-		
+
 		// Save connection
 		err := saveConnection(config)
 		if err != nil {
 			logDisplay.Write([]byte(fmt.Sprintf("[red]Error saving connection: %v[white]\n", err)))
 			return
 		}
-		
+
 		// Attempt to connect
 		err = redis.Connect(host, port)
 		if err != nil {
 			logDisplay.Write([]byte(fmt.Sprintf("[red]Connection failed: %v[white]\n", err)))
 			return
 		}
-		
+
 		logDisplay.Write([]byte(fmt.Sprintf("[green]Connection '%s' saved and connected successfully[white]\n", name)))
 	})
 
 	// Set up the overall layout for the application
 	flex.SetBorder(true).SetTitle(" Add Redis Connection ")
-	
+
 	return flex
 }

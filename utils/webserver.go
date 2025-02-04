@@ -113,39 +113,48 @@ func (rc *RedisConnection) ServeAnalytics() error {
     <style>
         body { 
             font-family: Arial, sans-serif; 
-            background-color: #f4f4f4; 
+            background-color: #121212; 
+            color: #ffffff; 
             margin: 0;
-            padding: 5px;
+            padding: 10px;
             font-size: 12px;
         }
         .dashboard { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
-            gap: 5px; 
+            gap: 10px; 
         }
         .chart-container { 
-            background-color: white; 
-            border-radius: 3px; 
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1); 
-            padding: 5px;
+            background-color: #1e1e1e; 
+            border-radius: 5px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+            padding: 10px;
         }
         .full-width { grid-column: 1 / -1; }
+        h1 {
+            font-size: 24px;
+            margin: 0 0 20px 0;
+            font-weight: bold;
+            color: #ffffff;
+        }
         h2 { 
             font-size: 14px;
             margin: 5px 0;
             font-weight: bold;
+            color: #ffffff;
         }
         canvas { 
-            max-height: 150px !important; /* Increased from 120px by 10% */
+            max-height: 150px !important;
             height: 150px !important;
         }
         #keyTypesChart, #keyExpirationChart {
-            max-height: 150px !important; /* Specific increase for pie and bar charts */
+            max-height: 150px !important;
             height: 150px !important;
         }
     </style>
 </head>
 <body>
+    <h1>Redis Analytics Dashboard</h1>
     <div class="dashboard">
         <div class="chart-container">
             <h2>Key Types</h2>
@@ -169,9 +178,10 @@ func (rc *RedisConnection) ServeAnalytics() error {
         var globalCharts = {};
         var memoryHistory = [];
         var keyHistory = [];
+        var socket;
 
         function initWebSocket() {
-            var socket = new WebSocket('ws://' + window.location.host + '/ws');
+            socket = new WebSocket('ws://' + window.location.host + '/ws');
             
             socket.onmessage = function(event) {
                 try {
@@ -203,7 +213,7 @@ func (rc *RedisConnection) ServeAnalytics() error {
             globalCharts.keyTypes = new Chart(document.getElementById('keyTypesChart'), {
                 type: 'pie',
                 options: { 
-                    plugins: { legend: { display: false } },
+                    plugins: { legend: { position: 'bottom' } },
                     animation: false
                 },
                 data: {
@@ -219,12 +229,25 @@ func (rc *RedisConnection) ServeAnalytics() error {
                 type: 'bar',
                 options: { 
                     plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } },
+                    scales: { 
+                        y: { 
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
                     animation: false
                 },
                 data: {
                     labels: Object.keys(data.keyExpirations || {}),
                     datasets: [{
+                        label: 'Key Expirations',
                         data: Object.values(data.keyExpirations || {}),
                         backgroundColor: '#4BC0C0'
                     }]
@@ -234,14 +257,29 @@ func (rc *RedisConnection) ServeAnalytics() error {
             globalCharts.memoryLine = new Chart(document.getElementById('memoryUsageLineChart'), {
                 type: 'line',
                 options: { 
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { display: true } },
+                    scales: { 
+                        y: { 
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
                     animation: false
                 },
                 data: {
+                    labels: memoryHistory.map(d => d.x),
                     datasets: [{
+                        label: 'Memory Usage (MB)',
                         data: memoryHistory,
-                        borderColor: '#9966FF'
+                        borderColor: '#9966FF',
+                        fill: false
                     }]
                 }
             });
@@ -249,14 +287,29 @@ func (rc *RedisConnection) ServeAnalytics() error {
             globalCharts.keyLine = new Chart(document.getElementById('keyUsageLineChart'), {
                 type: 'line',
                 options: { 
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { display: true } },
+                    scales: { 
+                        y: { 
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
                     animation: false
                 },
                 data: {
+                    labels: keyHistory.map(d => d.x),
                     datasets: [{
+                        label: 'Key Count',
                         data: keyHistory,
-                        borderColor: '#FF6384'
+                        borderColor: '#FF6384',
+                        fill: false
                     }]
                 }
             });
