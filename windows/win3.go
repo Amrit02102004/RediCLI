@@ -1,8 +1,10 @@
 package windows
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Amrit02102004/RediCLI/utils"
 	"github.com/gdamore/tcell/v2"
@@ -29,12 +31,12 @@ var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
 	{"expire", "Set a key's time to live in seconds", "Basic"},
 	{"import", "Import data from CSV/XLSX file", "Data Management"},
 	{"export", "Export data to CSV file", "Data Management"},
-	{"get help", "Display help information and available commands", "Help"},
+	{"help", "Display help information and available commands", "Help"},
 	{"clear all", "clear console and logs screen", "Basic"},
 	{"clear logs", "clear logs screen", "Basic"},
 	{"clear display", "clear display screen", "Basic"},
 	{"add connection", "Open form to add and connect to a new Redis connection", "Connection Management"},
-	{"get connections", "List all saved Redis connections", "Connection Management"},
+	{"view all connections", "List all saved Redis connections", "Connection Management"},
 	{"connect", "Connect to a saved Redis connection by name", "Connection Management"},
 	{"del connection", "Delete a specific saved Redis connection", "Connection Management"},
 	{"del all connections", "Delete all saved Redis connections", "Connection Management"},
@@ -149,6 +151,86 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 
 		logDisplay.Write([]byte(fmt.Sprintf("> %s\n", cmd)))
 
+		// Assuming you have a `redis` package handling Redis operations
+
+		if strings.HasPrefix(cmd, "get ") {
+			// Extract the key name
+			keyName := strings.TrimSpace(strings.TrimPrefix(cmd, "get"))
+
+			// Check if key exists
+			exists, err := redis.KeyExists(keyName)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Error checking key:[white] %v\n", err)))
+				return
+			}
+
+			if !exists {
+				logDisplay.Write([]byte(fmt.Sprintf("[yellow]Key '%s' does not exist[white]\n", keyName)))
+				kvDisplay.Clear()
+				DisplayWelcomeMessage(kvDisplay)
+				return
+			}
+
+			// Get the key value
+			value, err := redis.GetValue(keyName)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Error getting value:[white] %v\n", err)))
+				return
+			}
+
+			// Log key existence
+			logDisplay.Write([]byte(fmt.Sprintf("[green]Key '%s' found[white]\n", keyName)))
+
+			// Try pretty-printing JSON
+			var prettyJSON string
+			var formattedJSON map[string]interface{}
+
+			if err := json.Unmarshal([]byte(value), &formattedJSON); err == nil {
+				// Successfully parsed JSON, format it
+				if prettyJSONBytes, err := json.MarshalIndent(formattedJSON, "", "  "); err == nil {
+					prettyJSON = string(prettyJSONBytes)
+				} else {
+					// If marshalling fails, fall back to raw value
+					prettyJSON = value
+				}
+			} else {
+				// If unmarshalling fails, fall back to raw value
+				prettyJSON = value
+			}
+
+			// Get the TTL
+			ttl, err := redis.GetTTL(keyName)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Error getting TTL:[white] %v\n", err)))
+				return
+			}
+
+			// Clear previous display and show key details
+			kvDisplay.Clear()
+
+			// Format TTL display
+			var ttlDisplay string
+			switch {
+			case ttl == -1:
+				ttlDisplay = "No expiration"
+			case ttl == -2:
+				ttlDisplay = "Key does not exist"
+			default:
+				ttlDisplay = fmt.Sprintf("%v remaining", ttl.Round(time.Second))
+			}
+
+			// Display key details
+			kvDisplay.SetText(fmt.Sprintf(
+				"[green]Key Information:[white]\n\n"+
+					"[yellow]Key Name:[white] %s\n\n"+
+					"[yellow]Value:[white]\n%s\n\n"+
+					"[yellow]Time to Live (TTL):[white] %s",
+				keyName, prettyJSON, ttlDisplay,
+			)).SetTextAlign(tview.AlignLeft)
+
+			return
+		}
+
 		switch {
 		case cmd == "see analytics":
 			go func() {
@@ -243,8 +325,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
 
-		case cmd == "get help":
-			cmdFlex.Clear()
+		case cmd == "help":
 			DisplayHelp(kvDisplay)
 			cmdFlex.AddItem(kvDisplay, 0, 1, false)
 			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
@@ -261,13 +342,14 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
 
-		case cmd == "get connections":
-			cmdFlex.Clear()
+
+		case cmd == "view all connections":
+      cmdFlex.Clear()
 			connections, err := GetConnections()
 			if err != nil {
 				logDisplay.Write([]byte(fmt.Sprintf("[red]Error fetching connections: %v[white]\n", err)))
 			} else {
-				kvDisplay.SetText(FormatConnectionsList(connections))
+				kvDisplay.SetText(FormatConnectionsList(connections)).SetTextAlign(tview.AlignLeft)
 			}
 			cmdFlex.AddItem(kvDisplay, 0, 1, false)
 			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
@@ -304,7 +386,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				if err != nil {
 					logDisplay.Write([]byte(fmt.Sprintf("[red]Error fetching connections: %v[white]\n", err)))
 				} else {
-					kvDisplay.SetText(FormatConnectionsList(connections))
+					kvDisplay.SetText(FormatConnectionsList(connections)).SetTextAlign(tview.AlignLeft)
 				}
 			}
 			return
@@ -320,7 +402,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				if err != nil {
 					logDisplay.Write([]byte(fmt.Sprintf("[red]Error fetching connections: %v[white]\n", err)))
 				} else {
-					kvDisplay.SetText(FormatConnectionsList(connections))
+					kvDisplay.SetText(FormatConnectionsList(connections)).SetTextAlign(tview.AlignLeft)
 				}
 			}
 			return
