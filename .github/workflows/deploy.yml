@@ -24,7 +24,7 @@ jobs:
 
       - name: Get Release Version
         id: version
-        run: echo "VERSION=$(date +%Y%m%d%H%M)" >> $GITHUB_ENV
+        run: echo "VERSION=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
 
       - name: Build for Linux (x86_64)
         run: GOOS=linux GOARCH=amd64 go build -o redicli-linux
