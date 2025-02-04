@@ -1,8 +1,10 @@
 package windows
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Amrit02102004/RediCLI/utils"
 	"github.com/gdamore/tcell/v2"
@@ -29,7 +31,7 @@ var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
 	{"expire", "Set a key's time to live in seconds", "Basic"},
 	{"import", "Import data from CSV/XLSX file", "Data Management"},
 	{"export", "Export data to CSV file", "Data Management"},
-	{"get help", "Display help information and available commands", "Help"},
+	{"help", "Display help information and available commands", "Help"},
 	{"clear all", "clear console and logs screen", "Basic"},
 	{"clear logs", "clear logs screen", "Basic"},
 	{"clear display", "clear display screen", "Basic"},
@@ -149,6 +151,79 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 
 		logDisplay.Write([]byte(fmt.Sprintf("> %s\n", cmd)))
 
+		// Assuming you have a `redis` package handling Redis operations
+
+		if strings.HasPrefix(cmd, "get ") {
+			// Extract the key name
+			keyName := strings.TrimSpace(strings.TrimPrefix(cmd, "get"))
+
+			// Check if key exists
+			exists, err := redis.KeyExists(keyName)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Error checking key:[white] %v\n", err)))
+				return
+			}
+
+			if !exists {
+				logDisplay.Write([]byte(fmt.Sprintf("[yellow]Key '%s' does not exist[white]\n", keyName)))
+				kvDisplay.Clear()
+				DisplayWelcomeMessage(kvDisplay)
+				return
+			}
+
+			// Get the key value
+			value, err := redis.GetValue(keyName)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Error getting value:[white] %v\n", err)))
+				return
+			}
+
+			// Pretty-print the JSON
+			var formattedJSON map[string]interface{} // Use a struct if you have a fixed structure
+			err = json.Unmarshal([]byte(value), &formattedJSON)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Error parsing JSON:[white] %v\n", err)))
+				return
+			}
+
+			prettyJSON, err := json.MarshalIndent(formattedJSON, "", "  ")
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Error formatting JSON:[white] %v\n", err)))
+				return
+			}
+
+			// Get the TTL
+			ttl, err := redis.GetTTL(keyName)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Error getting TTL:[white] %v\n", err)))
+				return
+			}
+
+			// Clear previous display and show key details
+			kvDisplay.Clear()
+
+			// Format TTL display
+			var ttlDisplay string
+			switch {
+			case ttl == -1:
+				ttlDisplay = "No expiration"
+			case ttl == -2:
+				ttlDisplay = "Key does not exist"
+			default:
+				ttlDisplay = fmt.Sprintf("%v remaining", ttl.Round(time.Second))
+			}
+
+			// Display key details
+			kvDisplay.SetText(fmt.Sprintf(
+				"[green]Key Information:[white]\n\n"+
+					"[yellow]Key Name:[white] %s\n\n"+
+					"[yellow]Value:[white]\n%s\n\n"+
+					"[yellow]Time to Live (TTL):[white] %s",
+				keyName, string(prettyJSON), ttlDisplay,
+			)).SetTextAlign(tview.AlignLeft)
+
+			return
+		}
 		switch {
 		case cmd == "see analytics":
 			go func() {
@@ -234,8 +309,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
 			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
-
-		case cmd == "get help":
+		case cmd == "help":
 			DisplayHelp(kvDisplay)
 			return
 

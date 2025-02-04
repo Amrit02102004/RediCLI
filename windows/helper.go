@@ -1,15 +1,17 @@
 package windows
+
 import (
 	"encoding/csv"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
-	"github.com/gdamore/tcell/v2"
 	"strings"
+	"time"
+
 	"github.com/Amrit02102004/RediCLI/utils"
-	
+	"github.com/gdamore/tcell/v2"
+
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/rivo/tview"
 	"github.com/xuri/excelize/v2"
@@ -120,19 +122,19 @@ func DisplayWelcomeMessage(kvDisplay *tview.TextView) {
 	welcome := `
 [::b]       Welcome to RediCLI v1.0       [-:-:-]
 [::b]──────────────────────────────────────[-:-:-]
-[::b]  Type 'get help' to see available   [-:-:-]
+[::b]  Type 'help' to see available   [-:-:-]
 [::b]  commands and their descriptions    [-:-:-]
 `
 	kvDisplay.SetTextAlign(tview.AlignCenter) // Center the text
 	kvDisplay.SetText(welcome)
 }
 
-func Clear(kvDisplay *tview.TextView, logDisplay *tview.TextView , x int , y int) {
+func Clear(kvDisplay *tview.TextView, logDisplay *tview.TextView, x int, y int) {
 	if x == 1 {
-    kvDisplay.Clear()
+		kvDisplay.Clear()
 	}
 	if y == 1 {
-    logDisplay.Clear()
+		logDisplay.Clear()
 	}
 }
 
@@ -177,7 +179,7 @@ func DisplayHelp(kvDisplay *tview.TextView) {
     Export data to CSV file
 
 [::b]Help:[-:-:-]
-  • [green]get help[-:-:-]
+  • [green]help[-:-:-]
     Display this help message
 
 [yellow]Note: Use TAB key to autocomplete commands[-:-:-]`
@@ -492,4 +494,3 @@ func enhancedFilterSuggestions(input string) []EnhancedCommandSuggestion {
 	}
 	return matches
 }
-
