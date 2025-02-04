@@ -1,4 +1,4 @@
-name: Build and Publish Snap
+name: Build and Publish RediCLI Snap
 
 on:
   push:
@@ -11,18 +11,17 @@ on:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    env:
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - name: Check out Git repository
+        uses: actions/checkout@v3
 
       - name: Install Snapcraft
-        run: |
-          sudo apt update
-          sudo apt install -y snapd
-          sudo snap install snapcraft --classic
+        uses: samuelmeuli/action-snapcraft@v3
 
-      - name: Authenticate with Snap Store
+      - name: Log in to Snap Store
         run: |
           echo "${{ secrets.SNAPCRAFT_TOKEN }}" > snapcraft_login
           export SNAPCRAFT_STORE_CREDENTIALS=$(cat snapcraft_login)
