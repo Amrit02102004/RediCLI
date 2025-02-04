@@ -19,6 +19,7 @@ type EnhancedCommandSuggestion struct {
 }
 
 var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
+	{"flushall", "Delete all existing keys from Redis (USE WITH CAUTION)", "Advanced"},
 	{"key filter set", "Open key set form with TTL in milliseconds", "Advanced"},
 	{"key filter update", "Open key update form with KEEPTTL option", "Advanced"},
 	{"get", "Retrieve the value of a key", "Basic"},
@@ -258,6 +259,24 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 		logDisplay.Write([]byte(fmt.Sprintf("> %s\n", cmd)))
 		
 		switch {
+		case cmd == "flushall":
+			// Add confirmation dialog
+			modal := tview.NewModal().
+				SetText("Are you sure you want to delete ALL keys?\nThis action cannot be undone!").
+				AddButtons([]string{"Yes", "No"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					if buttonLabel == "Yes" {
+						err := redis.FlushAll()
+						if err != nil {
+							logDisplay.Write([]byte(fmt.Sprintf("[red]Error:[white] %v\n", err)))
+						} else {
+							logDisplay.Write([]byte("[green]Successfully deleted all keys[white]\n"))
+						}
+						RefreshData(logDisplay, kvDisplay, redis)
+					}
+					app.SetRoot(mainFlex, true)
+				})
+			app.SetRoot(modal, false)
 		case cmd == "key filter set":
 			form := KeyFilterSetForm(app, redis, logDisplay, kvDisplay, mainFlex, formContainer, cmdFlex, suggestionDisplay, cmdInput)
 			formContainer.Clear()

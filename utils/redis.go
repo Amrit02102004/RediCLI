@@ -170,3 +170,17 @@ func (rc *RedisConnection) RefreshData() ([]string, error) {
     // Optionally, you can add more complex data retrieval logic here
     return keys, nil
 }
+
+func (rc *RedisConnection) FlushAll() error {
+    if rc.client == nil {
+        return fmt.Errorf("not connected to Redis")
+    }
+    
+    // Execute FLUSHALL command
+    err := rc.client.FlushAll(rc.ctx).Err()
+    if err != nil {
+        return fmt.Errorf("error flushing Redis: %v", err)
+    }
+    
+    return nil
+}
