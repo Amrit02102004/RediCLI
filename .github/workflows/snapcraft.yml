@@ -24,7 +24,9 @@ jobs:
 
       - name: Authenticate with Snap Store
         run: |
-          echo "${{ secrets.SNAPCRAFT_TOKEN }}" | snapcraft login --with -
+          echo "${{ secrets.SNAPCRAFT_TOKEN }}" > snapcraft_login
+          export SNAPCRAFT_STORE_CREDENTIALS=$(cat snapcraft_login)
+          snapcraft login
 
       - name: Build Snap Package
         run: snapcraft --destructive-mode
