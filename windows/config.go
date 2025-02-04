@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/Amrit02102004/RediCLI/utils"
 	"github.com/rivo/tview"
@@ -80,6 +81,35 @@ func GetConnections() ([]ConnectionConfig, error) {
 	}
 
 	return connections, nil
+}
+
+func FindConnectionByName(name string) (*ConnectionConfig, error) {
+	connections, err := GetConnections()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, conn := range connections {
+		if conn.Name == name {
+			return &conn, nil
+		}
+	}
+
+	return nil, fmt.Errorf("connection '%s' not found", name)
+}
+
+func FormatConnectionsList(connections []ConnectionConfig) string {
+	if len(connections) == 0 {
+		return "[yellow]No saved connections found[white]"
+	}
+
+	var builder strings.Builder
+	builder.WriteString("[yellow]Saved Redis Connections:[white]\n")
+	for _, conn := range connections {
+		builder.WriteString(fmt.Sprintf("• [green]%s[white]: %s:%s\n", 
+			conn.Name, conn.Host, conn.Port))
+	}
+	return builder.String()
 }
 
 func RefreshData(logDisplay *tview.TextView, kvDisplay *tview.TextView, redis *utils.RedisConnection) {
