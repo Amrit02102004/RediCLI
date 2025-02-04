@@ -244,7 +244,11 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			return
 
 		case cmd == "get help":
+			cmdFlex.Clear()
 			DisplayHelp(kvDisplay)
+			cmdFlex.AddItem(kvDisplay, 0, 1, false)
+			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
 
 		case strings.HasPrefix(cmd, "add connection"):
@@ -258,12 +262,16 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			return
 
 		case cmd == "get connections":
+			cmdFlex.Clear()
 			connections, err := GetConnections()
 			if err != nil {
 				logDisplay.Write([]byte(fmt.Sprintf("[red]Error fetching connections: %v[white]\n", err)))
 			} else {
 				kvDisplay.SetText(FormatConnectionsList(connections))
 			}
+			cmdFlex.AddItem(kvDisplay, 0, 1, false)
+			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
 
 		case strings.HasPrefix(cmd, "connect "):
