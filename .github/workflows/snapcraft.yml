@@ -13,19 +13,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Check out the code from your repository
       - uses: actions/checkout@v4
 
-      # Step 2: Build the Snap package
-      - uses: snapcore/action-build@v1
+      - name: Install dependencies
+        run: |
+          sudo snap install snapcraft --classic
+          sudo snap install lxd
+          sudo lxd init --auto
+          sudo usermod --append --groups lxd $USER
+          
+      - name: Debug environment
+        run: |
+          pwd
+          ls -la
+          go version || echo "Go not found"
+          snapcraft --version
+          
+      - name: Build Snap package
+        uses: snapcore/action-build@v1
         id: build
         env:
-          SNAPCRAFT_PROJECT_PATH: ./  # Path to your snapcraft.yaml file (root directory)
-
-      # Step 3: Publish the Snap package to Snap Store
-      - uses: snapcore/action-publish@v1
+          SNAPCRAFT_PROJECT_PATH: .
+          SNAPCRAFT_BUILD_ENVIRONMENT: host
+          
+      - name: Debug build output
+        if: always()
+        run: |
+          cat /home/runner/.local/state/snapcraft/log/snapcraft-*.log || echo "No log file found"
+          
+      - name: Publish to Edge
+        if: success()
+        uses: snapcore/action-publish@v1
         env:
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_LOGIN }}  # Your Snapcraft login token
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_LOGIN }}
         with:
-          snap: ${{ steps.build.outputs.snap }}  # The built snap file from the build step
-          release: edge  # You can change this to 'stable' or 'beta' based on your requirements
+          snap: ${{ steps.build.outputs.snap }}
+          release: edge
