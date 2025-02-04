@@ -1,22 +1,27 @@
 name: redicli
-base: core22
 version: '1.0'
-summary: A TUI for Redis
+summary: A CLI tool for Redis
 description: |
-  RediCLI is a terminal-based UI for Redis, built with Go using tcell and tview.
+  A terminal user interface for Redis with go-redis.
 
-grade: stable
-confinement: strict
+confinement: classic
 
 parts:
   redicli:
     plugin: go
     source: .
+    go-importpath: github.com/yourusername/redicli
     build-packages:
+      - build-essential
       - golang
+    stage-packages:
+      - libc6
+
+    # Ensure the binary is in the correct path for Snapcraft to include it
+    override-build: |
+      go mod download
+      go build -o bin/redicli ./cmd/redicli
 
 apps:
   redicli:
     command: bin/redicli
-    plugs:
-      - network
