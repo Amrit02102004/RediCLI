@@ -24,7 +24,7 @@ jobs:
 
       - name: Get Release Version
         id: version
-        run: echo "VERSION= ${{env.VERSION}}" >> $GITHUB_ENV
+        run: echo "VERSION= ${{secrets.VERSION}}" >> $GITHUB_ENV
 
       - name: Build for Linux (x86_64)
         run: GOOS=linux GOARCH=amd64 go build -o redicli-linux
