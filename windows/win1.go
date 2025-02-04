@@ -1,10 +1,7 @@
 package windows
 
 import (
-	"encoding/csv"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"time"
@@ -12,7 +9,6 @@ import (
 	"github.com/Amrit02102004/RediCLI/utils"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/xuri/excelize/v2"
 )
 
 type KeyData struct {
@@ -21,102 +17,6 @@ type KeyData struct {
 	ttl    string
 	memory int64
 }
-
-func ExportData(filePath string , redis *utils.RedisConnection) error {
-		file, err := os.Create(filePath)
-		if err != nil {
-			return fmt.Errorf("error creating CSV file: %v", err)
-		}
-		defer file.Close()
-
-		writer := csv.NewWriter(file)
-		defer writer.Flush()
-
-		if err := writer.Write([]string{"Key", "Value", "TTL"}); err != nil {
-			return fmt.Errorf("error writing CSV header: %v", err)
-		}
-
-		keys, err := redis.GetAllKeys()
-		if err != nil {
-			return fmt.Errorf("error getting keys: %v", err)
-		}
-
-		for _, key := range keys {
-			value, err := redis.GetValue(key)
-			if err != nil {
-				value = ""
-			}
-
-			ttl, err := redis.GetTTL(key)
-			ttlStr := "-1"
-			if err == nil && ttl > 0 {
-				ttlStr = fmt.Sprintf("%.0f", ttl.Seconds())
-			}
-
-			if err := writer.Write([]string{key, value, ttlStr}); err != nil {
-				return fmt.Errorf("error writing CSV row: %v", err)
-			}
-		}
-
-		return nil
-	}
-
-	func 	ImportData(filePath string , redis *utils.RedisConnection) error {
-		ext := filepath.Ext(filePath)
-		var records [][]string
-
-		if ext == ".csv" {
-			file, err := os.Open(filePath)
-			if err != nil {
-				return fmt.Errorf("error opening CSV file: %v", err)
-			}
-			defer file.Close()
-
-			reader := csv.NewReader(file)
-			records, err = reader.ReadAll()
-			if err != nil {
-				return fmt.Errorf("error reading CSV: %v", err)
-			}
-		} else if ext == ".xlsx" {
-			f, err := excelize.OpenFile(filePath)
-			if err != nil {
-				return fmt.Errorf("error opening XLSX file: %v", err)
-			}
-			defer f.Close()
-
-			rows, err := f.GetRows(f.GetSheetList()[0])
-			if err != nil {
-				return fmt.Errorf("error reading XLSX: %v", err)
-			}
-			records = rows
-		} else {
-			return fmt.Errorf("unsupported file format: %s", ext)
-		}
-
-		if len(records) > 0 && len(records[0]) >= 3 {
-			for _, row := range records[1:] {
-				if len(row) >= 3 {
-					key := row[0]
-					value := row[1]
-					ttl, err := strconv.ParseFloat(row[2], 64)
-					if err != nil {
-						ttl = -1
-					}
-
-					if ttl > 0 {
-						err = redis.SetKeyWithTTL(key, value, time.Duration(ttl)*time.Second)
-					} else {
-						err = redis.SetKeyWithTTL(key, value, 0)
-					}
-
-					if err != nil {
-						return fmt.Errorf("error setting key %s: %v", key, err)
-					}
-				}
-			}
-		}
-		return nil
-	}
 
 
 func Win1(app *tview.Application, redis *utils.RedisConnection) *tview.Flex {
@@ -206,9 +106,6 @@ func Win1(app *tview.Application, redis *utils.RedisConnection) *tview.Flex {
 			table.SetCell(rowIndex, 3, tview.NewTableCell(fmt.Sprintf("%d B", data.memory)).SetExpansion(1))
 		}
 	}
-
-
-	
 
 	buttons := tview.NewFlex().SetDirection(tview.FlexColumn)
 
