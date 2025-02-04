@@ -126,8 +126,13 @@ func DisplayWelcomeMessage(kvDisplay *tview.TextView) {
 	kvDisplay.SetText(welcome)
 }
 
-func Clear(kvDisplay *tview.TextView) {
-	kvDisplay.Clear()
+func Clear(kvDisplay *tview.TextView, logDisplay *tview.TextView , x int , y int) {
+	if x == 1 {
+    kvDisplay.Clear()
+	}
+	if y == 1 {
+    logDisplay.Clear()
+	}
 }
 
 // DisplayHelp shows all available commands and their descriptions

@@ -31,7 +31,9 @@ var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
 	{"import", "Import data from CSV/XLSX file", "Data Management"},
 	{"export", "Export data to CSV file", "Data Management"},
 	{"get help", "Display help information and available commands", "Help"},
-	{"clear", "clear console screen", "Basic"},
+	{"clear all", "clear console and logs screen", "Basic"},
+	{"clear logs", "clear logs screen", "Basic"},
+	{"clear display", "clear display screen", "Basic"},
 }
 
 func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.RedisConnection) (*tview.Flex, *tview.TextView, *tview.InputField, *tview.Flex) {
@@ -128,9 +130,16 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 					app.SetRoot(mainFlex, true)
 				})
 			app.SetRoot(modal, false)
-		case cmd == "clear":
-			Clear(kvDisplay)
+		case cmd == "clear all":
+			Clear(kvDisplay , logDisplay , 1 , 1)
 			return
+		case cmd == "clear logs":
+			Clear(kvDisplay, logDisplay , 0 ,1)
+			return
+		case cmd == "clear display":
+			Clear(kvDisplay, logDisplay,1,0)
+			return
+
 		case cmd == "key filter set":
 			form := KeyFilterSetForm(app, redis, logDisplay, kvDisplay, mainFlex, formContainer, cmdFlex, suggestionDisplay, cmdInput)
 			formContainer.Clear()
