@@ -1,0 +1,33 @@
+name: Build and Publish Snap
+
+on:
+  push:
+    branches:
+      - deployed
+  pull_request:
+    branches:
+      - deployed
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Snapcraft
+        run: |
+          sudo apt update
+          sudo apt install -y snapcraft
+
+      - name: Authenticate with Snap Store
+        run: |
+          echo "${{ secrets.SNAPCRAFT_TOKEN }}" > snapcraft_login
+          snapcraft login --with snapcraft_login
+
+      - name: Build Snap Package
+        run: snapcraft --destructive-mode
+
+      - name: Publish Snap Package
+        run: snapcraft upload --release=stable *.snap
