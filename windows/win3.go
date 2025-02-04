@@ -178,18 +178,24 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				return
 			}
 
-			// Pretty-print the JSON
-			var formattedJSON map[string]interface{} // Use a struct if you have a fixed structure
-			err = json.Unmarshal([]byte(value), &formattedJSON)
-			if err != nil {
-				logDisplay.Write([]byte(fmt.Sprintf("[red]Error parsing JSON:[white] %v\n", err)))
-				return
-			}
+			// Log key existence
+			logDisplay.Write([]byte(fmt.Sprintf("[green]Key '%s' found[white]\n", keyName)))
 
-			prettyJSON, err := json.MarshalIndent(formattedJSON, "", "  ")
-			if err != nil {
-				logDisplay.Write([]byte(fmt.Sprintf("[red]Error formatting JSON:[white] %v\n", err)))
-				return
+			// Try pretty-printing JSON
+			var prettyJSON string
+			var formattedJSON map[string]interface{}
+
+			if err := json.Unmarshal([]byte(value), &formattedJSON); err == nil {
+				// Successfully parsed JSON, format it
+				if prettyJSONBytes, err := json.MarshalIndent(formattedJSON, "", "  "); err == nil {
+					prettyJSON = string(prettyJSONBytes)
+				} else {
+					// If marshalling fails, fall back to raw value
+					prettyJSON = value
+				}
+			} else {
+				// If unmarshalling fails, fall back to raw value
+				prettyJSON = value
 			}
 
 			// Get the TTL
@@ -219,11 +225,12 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 					"[yellow]Key Name:[white] %s\n\n"+
 					"[yellow]Value:[white]\n%s\n\n"+
 					"[yellow]Time to Live (TTL):[white] %s",
-				keyName, string(prettyJSON), ttlDisplay,
+				keyName, prettyJSON, ttlDisplay,
 			)).SetTextAlign(tview.AlignLeft)
 
 			return
 		}
+
 		switch {
 		case cmd == "see analytics":
 			go func() {
