@@ -239,6 +239,32 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			return
 		}
 
+		if strings.HasPrefix(cmd, "import .") {
+			// Extract the file path
+			filePath := strings.TrimSpace(strings.TrimPrefix(cmd, "import"))
+			err := ImportData(filePath, redis)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Import Error: %v[white]\n", err)))
+			} else {
+				logDisplay.Write([]byte("[green]Data imported successfully[white]\n"))
+			}
+			RefreshData(logDisplay, kvDisplay, redis)
+			return
+		}
+
+		if strings.HasPrefix(cmd, "export .") {
+			// Extract the file path
+			filePath := strings.TrimSpace(strings.TrimPrefix(cmd, "export"))
+			err := ExportData(filePath, redis)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Import Error: %v[white]\n", err)))
+			} else {
+				logDisplay.Write([]byte("[green]Data Exported successfully[white]\n"))
+			}
+			RefreshData(logDisplay, kvDisplay, redis)
+			return
+		}
+
 		switch {
 		case cmd == "see analytics":
 			go func() {
