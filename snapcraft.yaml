@@ -16,8 +16,6 @@ parts:
       - golang
     stage-packages:
       - libc6
-
-    # Ensure the binary is in the correct path for Snapcraft to include it
     override-build: |
       go mod download
       go build -o bin/redicli ./cmd/redicli
