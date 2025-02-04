@@ -117,7 +117,7 @@ func ConnectionForm(app *tview.Application, logDisplay *tview.TextView, redis *u
 	flex.AddItem(form, 0, 1, false)
 
 	// Add other components (buttons, text views)
-	form.AddButton("Save Connection", func() {
+	form.AddButton("Save & Connect", func() {
 		logDisplay.SetText("")
 		
 		// Validate inputs
@@ -148,7 +148,14 @@ func ConnectionForm(app *tview.Application, logDisplay *tview.TextView, redis *u
 			return
 		}
 		
-		logDisplay.Write([]byte(fmt.Sprintf("[green]Connection '%s' saved successfully[white]\n", name)))
+		// Attempt to connect
+		err = redis.Connect(host, port)
+		if err != nil {
+			logDisplay.Write([]byte(fmt.Sprintf("[red]Connection failed: %v[white]\n", err)))
+			return
+		}
+		
+		logDisplay.Write([]byte(fmt.Sprintf("[green]Connection '%s' saved and connected successfully[white]\n", name)))
 	})
 
 	// Set up the overall layout for the application
