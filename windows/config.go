@@ -112,6 +112,49 @@ func FormatConnectionsList(connections []ConnectionConfig) string {
 	return builder.String()
 }
 
+func deleteConnectionByName(name string) error {
+	filePath := getConnectionsFilePath()
+	
+	// Read existing connections
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	var connections []ConnectionConfig
+	if err := json.Unmarshal(data, &connections); err != nil {
+		return err
+	}
+
+	// Filter out the connection to delete
+	var updatedConnections []ConnectionConfig
+	found := false
+	for _, conn := range connections {
+		if conn.Name != name {
+			updatedConnections = append(updatedConnections, conn)
+		} else {
+			found = true
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("connection '%s' not found", name)
+	}
+
+	// Write back updated connections
+	updatedData, err := json.MarshalIndent(updatedConnections, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(filePath, updatedData, 0644)
+}
+
+func deleteAllConnections() error {
+	filePath := getConnectionsFilePath()
+	return os.WriteFile(filePath, []byte("[]"), 0644)
+}
+
 func RefreshData(logDisplay *tview.TextView, kvDisplay *tview.TextView, redis *utils.RedisConnection) {
 	if redis.IsConnected() {
 		_, err := redis.GetAllKeys()

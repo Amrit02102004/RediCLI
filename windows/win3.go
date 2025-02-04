@@ -36,8 +36,9 @@ var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
 	{"add connection", "Open form to add and connect to a new Redis connection", "Connection Management"},
 	{"get connections", "List all saved Redis connections", "Connection Management"},
 	{"connect", "Connect to a saved Redis connection by name", "Connection Management"},
+	{"del connection", "Delete a specific saved Redis connection", "Connection Management"},
+	{"del all connections", "Delete all saved Redis connections", "Connection Management"},
 }
-
 
 func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.RedisConnection) (*tview.Flex, *tview.TextView, *tview.InputField, *tview.Flex) {
 	cmdFlex := tview.NewFlex().SetDirection(tview.FlexRow)
@@ -127,7 +128,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 		if key != tcell.KeyEnter {
 			return
 		}
-	
+
 		cmd := strings.TrimSpace(cmdInput.GetText())
 		if cmd == "" {
 			return
@@ -147,7 +148,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 		currentHistoryIndex = -1
 
 		logDisplay.Write([]byte(fmt.Sprintf("> %s\n", cmd)))
-	
+
 		switch {
 		case cmd == "see analytics":
 			go func() {
@@ -194,12 +195,12 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			cmdFlex.RemoveItem(suggestionDisplay)
 			cmdFlex.RemoveItem(cmdInput)
 			cmdFlex.RemoveItem(formContainer)
-	
+
 			cmdFlex.AddItem(formContainer, 0, 1, false)
 			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
 			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
-	
+
 		case cmd == "key filter update":
 			form := KeyFilterUpdateForm(app, redis, logDisplay, kvDisplay, mainFlex, formContainer, cmdFlex, suggestionDisplay, cmdInput)
 			formContainer.Clear()
@@ -208,12 +209,12 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			cmdFlex.RemoveItem(kvDisplay)
 			cmdFlex.RemoveItem(suggestionDisplay)
 			cmdFlex.RemoveItem(cmdInput)
-	
+
 			cmdFlex.AddItem(formContainer, 0, 1, false)
 			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
 			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
-	
+
 		case cmd == "import":
 			form := ImportForm(app, redis, kvDisplay, logDisplay, cmdFlex, formContainer, suggestionDisplay, cmdInput)
 			formContainer.Clear()
@@ -223,7 +224,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
 			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
-	
+
 		case cmd == "export":
 			form := ExportForm(app, redis, kvDisplay, logDisplay, cmdFlex, formContainer, suggestionDisplay, cmdInput)
 			formContainer.Clear()
@@ -233,11 +234,11 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
 			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
-	
+
 		case cmd == "get help":
 			DisplayHelp(kvDisplay)
 			return
-	
+
 		case strings.HasPrefix(cmd, "add connection"):
 			form := ConnectionForm(app, logDisplay, redis, kvDisplay)
 			formContainer.Clear()
@@ -247,7 +248,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
 			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
-	
+
 		case cmd == "get connections":
 			connections, err := GetConnections()
 			if err != nil {
@@ -256,7 +257,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				kvDisplay.SetText(FormatConnectionsList(connections))
 			}
 			return
-	
+
 		case strings.HasPrefix(cmd, "connect "):
 			connectionName := strings.TrimSpace(strings.TrimPrefix(cmd, "connect"))
 			config, err := FindConnectionByName(connectionName)
@@ -264,17 +265,35 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				logDisplay.Write([]byte(fmt.Sprintf("[red]%v[white]\n", err)))
 				return
 			}
-	
+
 			err = redis.Connect(config.Host, config.Port)
 			if err != nil {
 				logDisplay.Write([]byte(fmt.Sprintf("[red]Connection failed: %v[white]\n", err)))
 			} else {
-				logDisplay.Write([]byte(fmt.Sprintf("[green]Connected to '%s' at %s:%s[white]\n", 
+				logDisplay.Write([]byte(fmt.Sprintf("[green]Connected to '%s' at %s:%s[white]\n",
 					config.Name, config.Host, config.Port)))
 				RefreshData(logDisplay, kvDisplay, redis)
 			}
 			return
-	
+		case strings.HasPrefix(cmd, "del connection "):
+			connectionName := strings.TrimSpace(strings.TrimPrefix(cmd, "delete connection "))
+			err := deleteConnectionByName(connectionName)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Error: %v[white]\n", err)))
+			} else {
+				logDisplay.Write([]byte(fmt.Sprintf("[green]Connection '%s' deleted successfully[white]\n", connectionName)))
+			}
+			return
+
+		case cmd == "del all connections":
+			err := deleteAllConnections()
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Error: %v[white]\n", err)))
+			} else {
+				logDisplay.Write([]byte("[green]All connections deleted successfully[white]\n"))
+			}
+			return
+
 		default:
 			result, err := redis.ExecuteCommand(cmd)
 			if err != nil {
@@ -283,7 +302,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				logDisplay.Write([]byte(fmt.Sprintf("[green]Result:[white] %v\n", result)))
 			}
 		}
-	
+
 		cmdInput.SetText("")
 		RefreshData(logDisplay, kvDisplay, redis)
 	})
