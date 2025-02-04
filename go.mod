@@ -1,6 +1,6 @@
 module github.com/Amrit02102004/RediCLI
 
-go 1.23.5
+go 1.23
 
 require (
 	github.com/gdamore/tcell/v2 v2.7.1
