@@ -276,21 +276,36 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			}
 			return
 		case strings.HasPrefix(cmd, "del connection "):
-			connectionName := strings.TrimSpace(strings.TrimPrefix(cmd, "delete connection "))
+			connectionName := strings.TrimSpace(strings.TrimPrefix(cmd, "del connection "))
 			err := deleteConnectionByName(connectionName)
 			if err != nil {
 				logDisplay.Write([]byte(fmt.Sprintf("[red]Error: %v[white]\n", err)))
 			} else {
 				logDisplay.Write([]byte(fmt.Sprintf("[green]Connection '%s' deleted successfully[white]\n", connectionName)))
+
+				// Refresh connections list
+				connections, err := GetConnections()
+				if err != nil {
+					logDisplay.Write([]byte(fmt.Sprintf("[red]Error fetching connections: %v[white]\n", err)))
+				} else {
+					kvDisplay.SetText(FormatConnectionsList(connections))
+				}
 			}
 			return
-
 		case cmd == "del all connections":
 			err := deleteAllConnections()
 			if err != nil {
 				logDisplay.Write([]byte(fmt.Sprintf("[red]Error: %v[white]\n", err)))
 			} else {
 				logDisplay.Write([]byte("[green]All connections deleted successfully[white]\n"))
+
+				// Refresh connections list (which will now be empty)
+				connections, err := GetConnections()
+				if err != nil {
+					logDisplay.Write([]byte(fmt.Sprintf("[red]Error fetching connections: %v[white]\n", err)))
+				} else {
+					kvDisplay.SetText(FormatConnectionsList(connections))
+				}
 			}
 			return
 
