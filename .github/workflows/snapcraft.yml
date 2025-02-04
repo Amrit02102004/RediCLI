@@ -27,8 +27,11 @@ jobs:
           export SNAPCRAFT_STORE_CREDENTIALS=$(cat snapcraft_login)
           snapcraft login
 
-      - name: Build Snap Package
-        run: snapcraft --destructive-mode
+      - name: Install LXD (needed for Snapcraft build with LXD)
+        run: sudo apt-get install -y lxd
+
+      - name: Build Snap with LXD
+        run: sg lxd -c 'snapcraft --use-lxd'
 
       - name: Publish Snap Package
         run: snapcraft upload --release=stable *.snap
