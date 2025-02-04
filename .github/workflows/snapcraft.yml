@@ -1,0 +1,51 @@
+name: Build and Publish RediCLI Snap
+
+on:
+  push:
+    branches:
+      - deployed
+  pull_request:
+    branches:
+      - deployed
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo snap install snapcraft --classic
+          sudo snap install lxd
+          sudo lxd init --auto
+          sudo usermod --append --groups lxd $USER
+          
+      - name: Debug environment
+        run: |
+          pwd
+          ls -la
+          go version || echo "Go not found"
+          snapcraft --version
+          
+      - name: Build Snap package
+        uses: snapcore/action-build@v1
+        id: build
+        env:
+          SNAPCRAFT_PROJECT_PATH: .
+          SNAPCRAFT_BUILD_ENVIRONMENT: host
+          
+      - name: Debug build output
+        if: always()
+        run: |
+          cat /home/runner/.local/state/snapcraft/log/snapcraft-*.log || echo "No log file found"
+          
+      - name: Publish to Edge
+        if: success()
+        uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.STORE_LOGIN }}
+        with:
+          snap: ${{ steps.build.outputs.snap }}
+          release: edge
