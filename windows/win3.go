@@ -36,7 +36,7 @@ var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
 	{"clear logs", "clear logs screen", "Basic"},
 	{"clear display", "clear display screen", "Basic"},
 	{"add connection", "Open form to add and connect to a new Redis connection", "Connection Management"},
-	{"get connections", "List all saved Redis connections", "Connection Management"},
+	{"view all connections", "List all saved Redis connections", "Connection Management"},
 	{"connect", "Connect to a saved Redis connection by name", "Connection Management"},
 	{"del connection", "Delete a specific saved Redis connection", "Connection Management"},
 	{"del all connections", "Delete all saved Redis connections", "Connection Management"},
@@ -323,12 +323,12 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
 
-		case cmd == "get connections":
+		case cmd == "view all connections":
 			connections, err := GetConnections()
 			if err != nil {
 				logDisplay.Write([]byte(fmt.Sprintf("[red]Error fetching connections: %v[white]\n", err)))
 			} else {
-				kvDisplay.SetText(FormatConnectionsList(connections))
+				kvDisplay.SetText(FormatConnectionsList(connections)).SetTextAlign(tview.AlignLeft)
 			}
 			return
 
@@ -362,7 +362,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				if err != nil {
 					logDisplay.Write([]byte(fmt.Sprintf("[red]Error fetching connections: %v[white]\n", err)))
 				} else {
-					kvDisplay.SetText(FormatConnectionsList(connections))
+					kvDisplay.SetText(FormatConnectionsList(connections)).SetTextAlign(tview.AlignLeft)
 				}
 			}
 			return
@@ -378,7 +378,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				if err != nil {
 					logDisplay.Write([]byte(fmt.Sprintf("[red]Error fetching connections: %v[white]\n", err)))
 				} else {
-					kvDisplay.SetText(FormatConnectionsList(connections))
+					kvDisplay.SetText(FormatConnectionsList(connections)).SetTextAlign(tview.AlignLeft)
 				}
 			}
 			return
