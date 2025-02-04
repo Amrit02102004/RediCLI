@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"os"
 
 	"github.com/Amrit02102004/RediCLI/utils"
 	"github.com/gdamore/tcell/v2"
@@ -19,6 +20,7 @@ type EnhancedCommandSuggestion struct {
 }
 
 var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
+	{"quit", "Exit the RediCLI application", "Basic"},
 	{"see analytics", "Open analytics dashboard in browser", "Advanced"},
 	{"flushall", "Delete all existing keys from Redis (USE WITH CAUTION)", "Advanced"},
 	{"key filter set", "Open key set form with TTL in milliseconds", "Advanced"},
@@ -232,6 +234,15 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 		}
 
 		switch {
+		case cmd == "quit":
+			// Clean up resources if needed
+			if redis.IsConnected() {
+				redis.Close()
+			}
+			app.Stop()
+			os.Exit(0)
+			return
+
 		case cmd == "see analytics":
 			go func() {
 				err := redis.ServeAnalytics()
