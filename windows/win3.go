@@ -262,12 +262,20 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			app.SetRoot(modal, false)
 		case cmd == "clear all":
 			Clear(kvDisplay, logDisplay, 1, 1)
+			cmdFlex.Clear()
+			cmdFlex.AddItem(kvDisplay, 0, 1, false)
+			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
 		case cmd == "clear logs":
 			Clear(kvDisplay, logDisplay, 0, 1)
 			return
 		case cmd == "clear display":
 			Clear(kvDisplay, logDisplay, 1, 0)
+			cmdFlex.Clear()
+			cmdFlex.AddItem(kvDisplay, 0, 1, false)
+			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
 		case cmd == "key filter set":
 			form := KeyFilterSetForm(app, redis, logDisplay, kvDisplay, mainFlex, formContainer, cmdFlex, suggestionDisplay, cmdInput)
@@ -316,8 +324,12 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
 			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
+
 		case cmd == "help":
 			DisplayHelp(kvDisplay)
+			cmdFlex.AddItem(kvDisplay, 0, 1, false)
+			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
 
 		case strings.HasPrefix(cmd, "add connection"):
@@ -330,13 +342,18 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
 
+
 		case cmd == "view all connections":
+      cmdFlex.Clear()
 			connections, err := GetConnections()
 			if err != nil {
 				logDisplay.Write([]byte(fmt.Sprintf("[red]Error fetching connections: %v[white]\n", err)))
 			} else {
 				kvDisplay.SetText(FormatConnectionsList(connections)).SetTextAlign(tview.AlignLeft)
 			}
+			cmdFlex.AddItem(kvDisplay, 0, 1, false)
+			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
 
 		case strings.HasPrefix(cmd, "connect "):

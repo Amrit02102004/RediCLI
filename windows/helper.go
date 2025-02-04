@@ -130,12 +130,14 @@ func DisplayWelcomeMessage(kvDisplay *tview.TextView) {
 }
 
 func Clear(kvDisplay *tview.TextView, logDisplay *tview.TextView, x int, y int) {
-	if x == 1 {
-		kvDisplay.Clear()
-	}
-	if y == 1 {
-		logDisplay.Clear()
-	}
+    if x == 1 {
+        kvDisplay.Clear()
+        kvDisplay.SetTextAlign(tview.AlignCenter)
+        DisplayWelcomeMessage(kvDisplay)
+    }
+    if y == 1 {
+        logDisplay.Clear()
+    }
 }
 
 // DisplayHelp shows all available commands and their descriptions
