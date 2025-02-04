@@ -14,9 +14,6 @@ parts:
     plugin: go
     source: .
     source-type: git
-    go-channel: latest/stable
-    build-snaps:
-      - go
     build-packages:
       - gcc
       - make
@@ -25,6 +22,8 @@ parts:
       - GO111MODULE: "on"
     override-build: |
       set -ex
+      GOROOT=/snap/go/current
+      export PATH=$GOROOT/bin:$PATH
       go mod download
       go build -v -o $SNAPCRAFT_PART_INSTALL/bin/redicli
       chmod 755 $SNAPCRAFT_PART_INSTALL/bin/redicli
