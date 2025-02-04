@@ -16,12 +16,12 @@ import (
 )
 
 type AnalyticsData struct {
-	TotalKeys        int64             `json:"totalKeys"`
-	PersistentKeys   int64             `json:"persistentKeys"`
-	ExpiringKeys     int64             `json:"expiringKeys"`
-	MemoryUsedBytes  int64             `json:"memoryUsedBytes"`
-	MemoryTotalBytes int64             `json:"memoryTotalBytes"`
-	KeyExpirations   map[string]int    `json:"keyExpirations"`
+	TotalKeys        int64          `json:"totalKeys"`
+	PersistentKeys   int64          `json:"persistentKeys"`
+	ExpiringKeys     int64          `json:"expiringKeys"`
+	MemoryUsedBytes  int64          `json:"memoryUsedBytes"`
+	MemoryTotalBytes int64          `json:"memoryTotalBytes"`
+	KeyExpirations   map[string]int `json:"keyExpirations"`
 }
 
 var upgrader = websocket.Upgrader{
@@ -115,20 +115,34 @@ func (rc *RedisConnection) ServeAnalytics() error {
             font-family: Arial, sans-serif; 
             background-color: #f4f4f4; 
             margin: 0;
-            padding: 20px;
+            padding: 5px;
+            font-size: 12px;
         }
         .dashboard { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
-            gap: 20px; 
+            gap: 5px; 
         }
         .chart-container { 
             background-color: white; 
-            border-radius: 8px; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
-            padding: 15px;
+            border-radius: 3px; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1); 
+            padding: 5px;
         }
         .full-width { grid-column: 1 / -1; }
+        h2 { 
+            font-size: 14px;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+        canvas { 
+            max-height: 150px !important; /* Increased from 120px by 10% */
+            height: 150px !important;
+        }
+        #keyTypesChart, #keyExpirationChart {
+            max-height: 150px !important; /* Specific increase for pie and bar charts */
+            height: 150px !important;
+        }
     </style>
 </head>
 <body>
@@ -138,15 +152,15 @@ func (rc *RedisConnection) ServeAnalytics() error {
             <canvas id="keyTypesChart"></canvas>
         </div>
         <div class="chart-container">
-            <h2>Key Expiration Distribution</h2>
+            <h2>Key Expirations</h2>
             <canvas id="keyExpirationChart"></canvas>
         </div>
         <div class="chart-container full-width">
-            <h2>Memory Usage Over Time</h2>
+            <h2>Memory Usage</h2>
             <canvas id="memoryUsageLineChart"></canvas>
         </div>
         <div class="chart-container full-width">
-            <h2>Key Count Over Time</h2>
+            <h2>Key Count</h2>
             <canvas id="keyUsageLineChart"></canvas>
         </div>
     </div>
@@ -162,12 +176,6 @@ func (rc *RedisConnection) ServeAnalytics() error {
             socket.onmessage = function(event) {
                 try {
                     var data = JSON.parse(event.data);
-                    
-                    if (data.error) {
-                        console.error('Analytics error:', data.error);
-                        return;
-                    }
-
                     updateCharts(data);
                 } catch (error) {
                     console.error('Parsing error:', error);
@@ -176,10 +184,8 @@ func (rc *RedisConnection) ServeAnalytics() error {
         }
 
         function updateCharts(data) {
-            // Destroy existing charts
             Object.values(globalCharts).forEach(chart => chart && chart.destroy());
 
-            // Maintain history for line charts (keep last 10 entries)
             var timestamp = new Date().toLocaleTimeString();
             
             memoryHistory.push({
@@ -194,12 +200,14 @@ func (rc *RedisConnection) ServeAnalytics() error {
             });
             if (keyHistory.length > 10) keyHistory.shift();
 
-            // Key Types Pie Chart
-            var keyTypesCtx = document.getElementById('keyTypesChart').getContext('2d');
-            globalCharts.keyTypes = new Chart(keyTypesCtx, {
+            globalCharts.keyTypes = new Chart(document.getElementById('keyTypesChart'), {
                 type: 'pie',
+                options: { 
+                    plugins: { legend: { display: false } },
+                    animation: false
+                },
                 data: {
-                    labels: ['Persistent Keys', 'Expiring Keys'],
+                    labels: ['Persistent', 'Expiring'],
                     datasets: [{
                         data: [data.persistentKeys, data.expiringKeys],
                         backgroundColor: ['#36A2EB', '#FF6384']
@@ -207,59 +215,49 @@ func (rc *RedisConnection) ServeAnalytics() error {
                 }
             });
 
-            // Key Expiration Distribution Bar Chart
-            var keyExpLabels = Object.keys(data.keyExpirations || {});
-            var keyExpValues = Object.values(data.keyExpirations || {});
-            var keyExpirationCtx = document.getElementById('keyExpirationChart').getContext('2d');
-            globalCharts.keyExpiration = new Chart(keyExpirationCtx, {
+            globalCharts.keyExpiration = new Chart(document.getElementById('keyExpirationChart'), {
                 type: 'bar',
+                options: { 
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } },
+                    animation: false
+                },
                 data: {
-                    labels: keyExpLabels,
+                    labels: Object.keys(data.keyExpirations || {}),
                     datasets: [{
-                        label: 'Key Expirations',
-                        data: keyExpValues,
+                        data: Object.values(data.keyExpirations || {}),
                         backgroundColor: '#4BC0C0'
                     }]
                 }
             });
 
-            // Memory Usage Line Chart
-            var memoryLineCtx = document.getElementById('memoryUsageLineChart').getContext('2d');
-            globalCharts.memoryLine = new Chart(memoryLineCtx, {
+            globalCharts.memoryLine = new Chart(document.getElementById('memoryUsageLineChart'), {
                 type: 'line',
+                options: { 
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } },
+                    animation: false
+                },
                 data: {
                     datasets: [{
-                        label: 'Memory Used (MB)',
                         data: memoryHistory,
-                        borderColor: '#9966FF',
-                        tension: 0.1
+                        borderColor: '#9966FF'
                     }]
-                },
-                options: {
-                    scales: {
-                        x: { type: 'category' },
-                        y: { beginAtZero: true }
-                    }
                 }
             });
 
-            // Key Usage Line Chart
-            var keyLineCtx = document.getElementById('keyUsageLineChart').getContext('2d');
-            globalCharts.keyLine = new Chart(keyLineCtx, {
+            globalCharts.keyLine = new Chart(document.getElementById('keyUsageLineChart'), {
                 type: 'line',
+                options: { 
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } },
+                    animation: false
+                },
                 data: {
                     datasets: [{
-                        label: 'Total Keys',
                         data: keyHistory,
-                        borderColor: '#FF6384',
-                        tension: 0.1
+                        borderColor: '#FF6384'
                     }]
-                },
-                options: {
-                    scales: {
-                        x: { type: 'category' },
-                        y: { beginAtZero: true }
-                    }
                 }
             });
         }
