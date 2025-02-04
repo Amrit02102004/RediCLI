@@ -8,6 +8,7 @@ import (
 
 	"github.com/Amrit02102004/RediCLI/utils"
 	"github.com/gdamore/tcell/v2"
+
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/rivo/tview"
 )
@@ -16,6 +17,164 @@ type EnhancedCommandSuggestion struct {
 	command     string
 	description string
 	category    string
+}
+
+func DisplayWelcomeMessage(kvDisplay *tview.TextView) {
+	welcome := `
+[::b]       Welcome to RediCLI v1.0       [-:-:-]
+[::b]──────────────────────────────────────[-:-:-]
+[::b]  Type 'get help' to see available   [-:-:-]
+[::b]  commands and their descriptions    [-:-:-]
+`
+	kvDisplay.SetTextAlign(tview.AlignCenter) // Center the text
+	kvDisplay.SetText(welcome)
+}
+
+func Clear(kvDisplay *tview.TextView) {
+	kvDisplay.Clear()
+}
+
+// DisplayHelp shows all available commands and their descriptions
+func DisplayHelp(kvDisplay *tview.TextView) {
+	helpText := `[yellow]RediCLI v1.0 - Available Commands[-:-:-]
+
+[::b]Basic Commands:[-:-:-]
+  • [green]get <key>[-:-:-]
+    Retrieve the value of a specified key
+    
+  • [green]set <key> <value>[-:-:-]
+    Set a key with the specified value
+    
+  • [green]del <key>[-:-:-]
+    Delete a specified key
+    
+  • [green]keys <pattern>[-:-:-]
+    Find all keys matching the given pattern
+    
+  • [green]ttl <key>[-:-:-]
+    Get the time to live for a key in seconds
+    
+  • [green]expire <key> <seconds>[-:-:-]
+    Set a key's time to live in seconds
+
+[::b]Advanced Commands:[-:-:-]
+  • [green]key filter set[-:-:-]
+    Open form to set a key with TTL in milliseconds
+    
+  • [green]key filter update[-:-:-]
+    Open form to update a key with KEEPTTL option
+    
+  • [green]flushall[-:-:-]
+    Delete all keys (use with caution)
+
+[::b]Data Management:[-:-:-]
+  • [green]import[-:-:-]
+    Import data from CSV/XLSX file
+    
+  • [green]export[-:-:-]
+    Export data to CSV file
+
+[::b]Help:[-:-:-]
+  • [green]get help[-:-:-]
+    Display this help message
+
+[yellow]Note: Use TAB key to autocomplete commands[-:-:-]`
+
+	kvDisplay.SetText(helpText)
+	kvDisplay.SetTextAlign(tview.AlignLeft)
+}
+
+func ImportForm(app *tview.Application, redis *utils.RedisConnection, kvDisplay *tview.TextView, logDisplay *tview.TextView, cmdFlex *tview.Flex, formContainer *tview.Flex, suggestionDisplay *tview.TextView, cmdInput *tview.InputField) tview.Primitive {
+	form := tview.NewForm()
+	form.SetBorder(true).SetTitle(" Import Data ")
+
+	filePathInput := tview.NewInputField().
+		SetLabel("File path (.csv/.xlsx): ").
+		SetFieldWidth(40)
+	form.AddFormItem(filePathInput)
+
+	form.AddButton("Import", func() {
+		filePath := filePathInput.GetText()
+		err := ImportData(filePath, redis)
+		if err != nil {
+			logDisplay.Write([]byte(fmt.Sprintf("[red]Import Error: %v[white]\n", err)))
+		} else {
+			logDisplay.Write([]byte("[green]Data imported successfully[white]\n"))
+		}
+		RefreshData(logDisplay, kvDisplay, redis)
+
+		// Reset the view
+		formContainer.AddItem(form, 0, 1, true)
+		cmdFlex.RemoveItem(kvDisplay)
+		cmdFlex.RemoveItem(suggestionDisplay)
+		cmdFlex.RemoveItem(cmdInput)
+		cmdFlex.RemoveItem(formContainer)
+		cmdFlex.AddItem(kvDisplay, 0, 1, false)
+		cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+		cmdFlex.AddItem(cmdInput, 1, 0, true)
+	})
+
+	form.AddButton("Cancel", func() {
+		formContainer.AddItem(form, 0, 1, true)
+		cmdFlex.RemoveItem(kvDisplay)
+		cmdFlex.RemoveItem(suggestionDisplay)
+		cmdFlex.RemoveItem(cmdInput)
+		cmdFlex.RemoveItem(formContainer)
+		cmdFlex.AddItem(kvDisplay, 0, 1, false)
+		cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+		cmdFlex.AddItem(cmdInput, 1, 0, true)
+	})
+
+	form.SetBorderPadding(1, 1, 1, 1)
+	return form
+}
+
+func ExportForm(app *tview.Application, redis *utils.RedisConnection, kvDisplay *tview.TextView, logDisplay *tview.TextView, cmdFlex *tview.Flex, formContainer *tview.Flex, suggestionDisplay *tview.TextView, cmdInput *tview.InputField) tview.Primitive {
+	form := tview.NewForm()
+	form.SetBorder(true).SetTitle(" Export Data ")
+
+	filePathInput := tview.NewInputField().
+		SetLabel("Export path (.csv): ").
+		SetFieldWidth(40)
+	form.AddFormItem(filePathInput)
+
+	form.AddButton("Export", func() {
+		filePath := filePathInput.GetText()
+		if !strings.HasSuffix(filePath, ".csv") {
+			filePath += ".csv"
+		}
+		err := ExportData(filePath, redis)
+		if err != nil {
+			logDisplay.Write([]byte(fmt.Sprintf("[red]Export Error: %v[white]\n", err)))
+		} else {
+			logDisplay.Write([]byte("[green]Data exported successfully[white]\n"))
+		}
+		RefreshData(logDisplay, kvDisplay, redis)
+
+		// Reset the view
+		formContainer.AddItem(form, 0, 1, true)
+		cmdFlex.RemoveItem(kvDisplay)
+		cmdFlex.RemoveItem(suggestionDisplay)
+		cmdFlex.RemoveItem(cmdInput)
+		cmdFlex.RemoveItem(formContainer)
+		cmdFlex.AddItem(kvDisplay, 0, 1, false)
+		cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+		cmdFlex.AddItem(cmdInput, 1, 0, true)
+	})
+
+	form.AddButton("Cancel", func() {
+		formContainer.AddItem(form, 0, 1, true)
+		cmdFlex.RemoveItem(kvDisplay)
+		cmdFlex.RemoveItem(suggestionDisplay)
+		cmdFlex.RemoveItem(cmdInput)
+		cmdFlex.RemoveItem(formContainer)
+		cmdFlex.AddItem(kvDisplay, 0, 1, false)
+		cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+		cmdFlex.AddItem(cmdInput, 1, 0, true)
+	})
+
+	form.SetBorderPadding(1, 1, 1, 1)
+	return form
 }
 
 var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
@@ -28,6 +187,10 @@ var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
 	{"keys", "Find all keys matching a pattern", "Basic"},
 	{"ttl", "Get the time to live for a key", "Basic"},
 	{"expire", "Set a key's time to live in seconds", "Basic"},
+	{"import", "Import data from CSV/XLSX file", "Data Management"},
+	{"export", "Export data to CSV file", "Data Management"},
+	{"get help", "Display help information and available commands", "Help"},
+	{"clear", "clear console screen", "Basic"},
 }
 
 func KeyFilterSetForm(app *tview.Application, redis *utils.RedisConnection, logDisplay *tview.TextView, kvDisplay *tview.TextView, flex *tview.Flex, formContainer *tview.Flex, cmdFlex *tview.Flex, suggestionDisplay *tview.TextView, cmdInput *tview.InputField) tview.Primitive {
@@ -79,25 +242,25 @@ func KeyFilterSetForm(app *tview.Application, redis *utils.RedisConnection, logD
 			formContainer.AddItem(form, 0, 1, true)
 			// formContainer.SetTitle(" Key Filter Set Form ")
 			cmdFlex.RemoveItem(kvDisplay)
-            cmdFlex.RemoveItem(suggestionDisplay)
-            cmdFlex.RemoveItem(cmdInput)
-            cmdFlex.RemoveItem(formContainer)
+			cmdFlex.RemoveItem(suggestionDisplay)
+			cmdFlex.RemoveItem(cmdInput)
+			cmdFlex.RemoveItem(formContainer)
 			cmdFlex.AddItem(kvDisplay, 0, 1, false)
-            cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
-            cmdFlex.AddItem(cmdInput, 1, 0, true)
+			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+			cmdFlex.AddItem(cmdInput, 1, 0, true)
 		}
 	})
 
 	form.AddButton("Cancel", func() {
-        formContainer.AddItem(form, 0, 1, true)
-			// formContainer.SetTitle(" Key Filter Set Form ")
-			cmdFlex.RemoveItem(kvDisplay)
-            cmdFlex.RemoveItem(suggestionDisplay)
-            cmdFlex.RemoveItem(cmdInput)
-            cmdFlex.RemoveItem(formContainer)
-			cmdFlex.AddItem(kvDisplay, 0, 1, false)
-            cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
-            cmdFlex.AddItem(cmdInput, 1, 0, true)
+		formContainer.AddItem(form, 0, 1, true)
+		// formContainer.SetTitle(" Key Filter Set Form ")
+		cmdFlex.RemoveItem(kvDisplay)
+		cmdFlex.RemoveItem(suggestionDisplay)
+		cmdFlex.RemoveItem(cmdInput)
+		cmdFlex.RemoveItem(formContainer)
+		cmdFlex.AddItem(kvDisplay, 0, 1, false)
+		cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+		cmdFlex.AddItem(cmdInput, 1, 0, true)
 	})
 
 	// Set a fixed size for the form
@@ -153,25 +316,25 @@ func KeyFilterUpdateForm(app *tview.Application, redis *utils.RedisConnection, l
 			formContainer.AddItem(form, 0, 1, true)
 			// formContainer.SetTitle(" Key Filter Set Form ")
 			cmdFlex.RemoveItem(kvDisplay)
-            cmdFlex.RemoveItem(suggestionDisplay)
-            cmdFlex.RemoveItem(cmdInput)
-            cmdFlex.RemoveItem(formContainer)
+			cmdFlex.RemoveItem(suggestionDisplay)
+			cmdFlex.RemoveItem(cmdInput)
+			cmdFlex.RemoveItem(formContainer)
 			cmdFlex.AddItem(kvDisplay, 0, 1, false)
-            cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
-            cmdFlex.AddItem(cmdInput, 1, 0, true)
+			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+			cmdFlex.AddItem(cmdInput, 1, 0, true)
 		}
 	})
 
 	form.AddButton("Cancel", func() {
-        formContainer.AddItem(form, 0, 1, true)
-			// formContainer.SetTitle(" Key Filter Set Form ")
-			cmdFlex.RemoveItem(kvDisplay)
-            cmdFlex.RemoveItem(suggestionDisplay)
-            cmdFlex.RemoveItem(cmdInput)
-            cmdFlex.RemoveItem(formContainer)
-			cmdFlex.AddItem(kvDisplay, 0, 1, false)
-            cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
-            cmdFlex.AddItem(cmdInput, 1, 0, true)
+		formContainer.AddItem(form, 0, 1, true)
+		// formContainer.SetTitle(" Key Filter Set Form ")
+		cmdFlex.RemoveItem(kvDisplay)
+		cmdFlex.RemoveItem(suggestionDisplay)
+		cmdFlex.RemoveItem(cmdInput)
+		cmdFlex.RemoveItem(formContainer)
+		cmdFlex.AddItem(kvDisplay, 0, 1, false)
+		cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+		cmdFlex.AddItem(cmdInput, 1, 0, true)
 	})
 
 	// Set a fixed size for the form
@@ -195,29 +358,29 @@ func enhancedFilterSuggestions(input string) []EnhancedCommandSuggestion {
 }
 func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.RedisConnection) (*tview.Flex, *tview.TextView, *tview.InputField, *tview.Flex) {
 	cmdFlex := tview.NewFlex().SetDirection(tview.FlexRow)
-	
+
 	// Create suggestion display
 	suggestionDisplay := tview.NewTextView().
 		SetDynamicColors(true).
 		SetTextColor(tcell.ColorGray).
-        SetTextAlign(tview.AlignCenter)
-	
+		SetTextAlign(tview.AlignCenter)
+
 	// Create key-value display
 	kvDisplay := tview.NewTextView().
 		SetDynamicColors(true).
 		SetChangedFunc(func() {
 			app.Draw()
 		})
-	kvDisplay.SetBorder(true).SetTitle(" Redis Data ")
-	
+	kvDisplay.SetBorder(true)
+	DisplayWelcomeMessage(kvDisplay)
 	// Create a container for forms
 	formContainer := tview.NewFlex().SetDirection(tview.FlexRow)
-	
+
 	// Create command input field
 	cmdInput := tview.NewInputField().
 		SetLabel("> ").
 		SetFieldWidth(0)
-	
+
 	currentSuggestionIndex := 0
 	var currentSuggestions []EnhancedCommandSuggestion
 
@@ -242,22 +405,22 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 		}
 		return event
 	})
-	
+
 	// Capture the main flex container to be used for overlay returns
 	mainFlex := tview.NewFlex().SetDirection(tview.FlexColumn)
-	
+
 	cmdInput.SetDoneFunc(func(key tcell.Key) {
 		if key != tcell.KeyEnter {
 			return
 		}
-		
+
 		cmd := strings.TrimSpace(cmdInput.GetText())
 		if cmd == "" {
 			return
 		}
-		
+
 		logDisplay.Write([]byte(fmt.Sprintf("> %s\n", cmd)))
-		
+
 		switch {
 		case cmd == "flushall":
 			// Add confirmation dialog
@@ -277,19 +440,22 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 					app.SetRoot(mainFlex, true)
 				})
 			app.SetRoot(modal, false)
+		case cmd == "clear":
+			Clear(kvDisplay)
+			return
 		case cmd == "key filter set":
 			form := KeyFilterSetForm(app, redis, logDisplay, kvDisplay, mainFlex, formContainer, cmdFlex, suggestionDisplay, cmdInput)
 			formContainer.Clear()
 			formContainer.AddItem(form, 0, 1, true)
 			// formContainer.SetTitle(" Key Filter Set Form ")
 			cmdFlex.RemoveItem(kvDisplay)
-            cmdFlex.RemoveItem(suggestionDisplay)
-            cmdFlex.RemoveItem(cmdInput)
-            cmdFlex.RemoveItem(formContainer)
+			cmdFlex.RemoveItem(suggestionDisplay)
+			cmdFlex.RemoveItem(cmdInput)
+			cmdFlex.RemoveItem(formContainer)
 
 			cmdFlex.AddItem(formContainer, 0, 1, false)
-            cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
-            cmdFlex.AddItem(cmdInput, 1, 0, true)
+			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
 		case cmd == "key filter update":
 			form := KeyFilterUpdateForm(app, redis, logDisplay, kvDisplay, mainFlex, formContainer, cmdFlex, suggestionDisplay, cmdInput)
@@ -298,13 +464,35 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			formContainer.AddItem(form, 0, 1, true)
 			// formContainer.SetTitle(" Key Filter Update Form ")
 			cmdFlex.RemoveItem(kvDisplay)
-            cmdFlex.RemoveItem(suggestionDisplay)
-            cmdFlex.RemoveItem(cmdInput)
+			cmdFlex.RemoveItem(suggestionDisplay)
+			cmdFlex.RemoveItem(cmdInput)
 
 			cmdFlex.AddItem(formContainer, 0, 1, false)
-            cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
-            cmdFlex.AddItem(cmdInput, 1, 0, true)
-			
+			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+			cmdFlex.AddItem(cmdInput, 1, 0, true)
+
+			return
+		case cmd == "import":
+			form := ImportForm(app, redis, kvDisplay, logDisplay, cmdFlex, formContainer, suggestionDisplay, cmdInput)
+			formContainer.Clear()
+			cmdFlex.Clear()
+			formContainer.AddItem(form, 0, 1, true)
+			cmdFlex.AddItem(formContainer, 0, 1, false)
+			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+			cmdFlex.AddItem(cmdInput, 1, 0, true)
+			return
+
+		case cmd == "export":
+			form := ExportForm(app, redis, kvDisplay, logDisplay, cmdFlex, formContainer, suggestionDisplay, cmdInput)
+			formContainer.Clear()
+			cmdFlex.Clear()
+			formContainer.AddItem(form, 0, 1, true)
+			cmdFlex.AddItem(formContainer, 0, 1, false)
+			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+			cmdFlex.AddItem(cmdInput, 1, 0, true)
+			return
+		case cmd == "get help":
+			DisplayHelp(kvDisplay)
 			return
 		default:
 			result, err := redis.ExecuteCommand(cmd)
@@ -314,13 +502,13 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				logDisplay.Write([]byte(fmt.Sprintf("[green]Result:[white] %v\n", result)))
 			}
 		}
-		
+
 		cmdInput.SetText("")
-		RefreshData(logDisplay, kvDisplay, redis)  
+		RefreshData(logDisplay, kvDisplay, redis)
 	})
-	
+
 	// Add suggestion display and command input to the flex container
-    cmdFlex.AddItem(kvDisplay, 0, 1, false)
+	cmdFlex.AddItem(kvDisplay, 0, 1, false)
 	cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
 	cmdFlex.AddItem(cmdInput, 1, 0, true)
 
