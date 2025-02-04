@@ -9,29 +9,21 @@ on:
       - deployed
 
 jobs:
-  build-and-publish:
+  build:
     runs-on: ubuntu-latest
-    env:
-      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
 
     steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v3
+      # Step 1: Check out the code from your repository
+      - uses: actions/checkout@v4
 
-      - name: Install Snapcraft
-        uses: samuelmeuli/action-snapcraft@v3
+      # Step 2: Build the Snap package
+      - uses: snapcore/action-build@v1
+        id: build
 
-      - name: Log in to Snap Store
-        run: |
-          echo "${{ secrets.SNAPCRAFT_TOKEN }}" > snapcraft_login
-          export SNAPCRAFT_STORE_CREDENTIALS=$(cat snapcraft_login)
-          snapcraft login
-
-      - name: Install LXD (needed for Snapcraft build with LXD)
-        run: sudo apt-get install -y lxd
-
-      - name: Build Snap with LXD
-        run: sg lxd -c 'snapcraft --use-lxd'
-
-      - name: Publish Snap Package
-        run: snapcraft upload --release=stable *.snap
+      # Step 3: Publish the Snap package to Snap Store
+      - uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}  # Your Snapcraft login token
+        with:
+          snap: ${{ steps.build.outputs.snap }}  # The built snap file from the build step
+          release: edge  # You can change this to 'stable' or 'beta' based on your requirements
