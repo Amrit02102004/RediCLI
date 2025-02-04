@@ -9,31 +9,31 @@ import (
 
 func RefreshData( logDisplay *tview.TextView, kvDisplay *tview.TextView, redis *utils.RedisConnection) {
 	if redis.IsConnected() {
-            keys, err := redis.GetAllKeys()
+            _, err := redis.GetAllKeys()
             if err != nil {
                 logDisplay.Write([]byte(fmt.Sprintf("Error fetching keys: %v\n", err)))
                 return
             }
             
-            kvDisplay.Clear()
-            for _, key := range keys {
-                value, err := redis.GetValue(key)
-                if err != nil {
-                    logDisplay.Write([]byte(fmt.Sprintf("Error fetching value for %s: %v\n", key, err)))
-                    continue
-                }
+            // kvDisplay.Clear()
+            // for _, key := range keys {
+            //     value, err := redis.GetValue(key)
+            //     if err != nil {
+            //         logDisplay.Write([]byte(fmt.Sprintf("Error fetching value for %s: %v\n", key, err)))
+            //         continue
+            //     }
                 
-                ttl, err := redis.GetTTL(key)
-                if err != nil {
-                    logDisplay.Write([]byte(fmt.Sprintf("Error fetching TTL for %s: %v\n", key, err)))
-                    continue
-                }
+            //     ttl, err := redis.GetTTL(key)
+            //     if err != nil {
+            //         logDisplay.Write([]byte(fmt.Sprintf("Error fetching TTL for %s: %v\n", key, err)))
+            //         continue
+            //     }
                 
-                kvDisplay.Write([]byte(fmt.Sprintf("[yellow]Key:[white] %s\n", key)))
-                kvDisplay.Write([]byte(fmt.Sprintf("[yellow]Value:[white] %s\n", value)))
-                kvDisplay.Write([]byte(fmt.Sprintf("[yellow]TTL:[white] %v\n", ttl)))
-                kvDisplay.Write([]byte("------------------------\n"))
-            }
+            //     kvDisplay.Write([]byte(fmt.Sprintf("[yellow]Key:[white] %s\n", key)))
+            //     kvDisplay.Write([]byte(fmt.Sprintf("[yellow]Value:[white] %s\n", value)))
+            //     kvDisplay.Write([]byte(fmt.Sprintf("[yellow]TTL:[white] %v\n", ttl)))
+            //     kvDisplay.Write([]byte("------------------------\n"))
+            // }
         }
 }
 

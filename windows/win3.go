@@ -8,18 +8,16 @@ import (
 
 	"github.com/Amrit02102004/RediCLI/utils"
 	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"github.com/lithammer/fuzzysearch/fuzzy"
+	"github.com/rivo/tview"
 )
 
-// Enhanced command suggestions with more metadata
 type EnhancedCommandSuggestion struct {
 	command     string
 	description string
 	category    string
 }
 
-// Expanded command suggestions with new features
 var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
 	{"key filter set", "Open key set form with TTL in milliseconds", "Advanced"},
 	{"key filter update", "Open key update form with KEEPTTL option", "Advanced"},
@@ -31,8 +29,7 @@ var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
 	{"expire", "Set a key's time to live in seconds", "Basic"},
 }
 
-func KeyFilterSetForm(app *tview.Application, redis *utils.RedisConnection, logDisplay *tview.TextView, kvDisplay *tview.TextView, flex *tview.Flex) *tview.Flex {
-	// Create form
+func KeyFilterSetForm(app *tview.Application, redis *utils.RedisConnection, logDisplay *tview.TextView, kvDisplay *tview.TextView, flex *tview.Flex, formContainer *tview.Flex, cmdFlex *tview.Flex, suggestionDisplay *tview.TextView, cmdInput *tview.InputField) tview.Primitive {
 	form := tview.NewForm()
 	form.SetBorder(true).SetTitle(" Key Filter Set ")
 
@@ -51,20 +48,6 @@ func KeyFilterSetForm(app *tview.Application, redis *utils.RedisConnection, logD
 		SetFieldWidth(10).
 		SetAcceptanceFunc(tview.InputFieldInteger)
 	form.AddFormItem(ttlInput)
-
-	// Create a modal-like overlay
-	overlay := tview.NewFlex().SetDirection(tview.FlexRow)
-	overlay.SetBackgroundColor(tcell.ColorBlack)
-
-	// Center the form
-	centeredForm := tview.NewFlex().SetDirection(tview.FlexColumn)
-	centeredForm.AddItem(nil, 0, 1, false)
-	centeredForm.AddItem(form, 40, 1, true)
-	centeredForm.AddItem(nil, 0, 1, false)
-
-	overlay.AddItem(nil, 0, 1, false)
-	overlay.AddItem(centeredForm, 10, 1, true)
-	overlay.AddItem(nil, 0, 1, false)
 
 	form.AddButton("Set Key", func() {
 		key := keyInput.GetText()
@@ -92,21 +75,38 @@ func KeyFilterSetForm(app *tview.Application, redis *utils.RedisConnection, logD
 		} else {
 			logDisplay.Write([]byte(fmt.Sprintf("[green]Key '%s' set successfully with TTL %v[white]\n", key, ttl)))
 			RefreshData(logDisplay, kvDisplay, redis)
-			app.SetRoot(flex, true)
+			formContainer.AddItem(form, 0, 1, true)
+			// formContainer.SetTitle(" Key Filter Set Form ")
+			cmdFlex.RemoveItem(kvDisplay)
+            cmdFlex.RemoveItem(suggestionDisplay)
+            cmdFlex.RemoveItem(cmdInput)
+            cmdFlex.RemoveItem(formContainer)
+			cmdFlex.AddItem(kvDisplay, 0, 1, false)
+            cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+            cmdFlex.AddItem(cmdInput, 1, 0, true)
 		}
 	})
 
 	form.AddButton("Cancel", func() {
-		app.SetRoot(flex, true)
+        formContainer.AddItem(form, 0, 1, true)
+			// formContainer.SetTitle(" Key Filter Set Form ")
+			cmdFlex.RemoveItem(kvDisplay)
+            cmdFlex.RemoveItem(suggestionDisplay)
+            cmdFlex.RemoveItem(cmdInput)
+            cmdFlex.RemoveItem(formContainer)
+			cmdFlex.AddItem(kvDisplay, 0, 1, false)
+            cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+            cmdFlex.AddItem(cmdInput, 1, 0, true)
 	})
 
-	return overlay
+	// Set a fixed size for the form
+	form.SetBorderPadding(1, 1, 1, 1)
+	return form
 }
 
-func KeyFilterUpdateForm(app *tview.Application, redis *utils.RedisConnection, logDisplay *tview.TextView, kvDisplay *tview.TextView, flex *tview.Flex) *tview.Flex {
-	// Create form
+func KeyFilterUpdateForm(app *tview.Application, redis *utils.RedisConnection, logDisplay *tview.TextView, kvDisplay *tview.TextView, flex *tview.Flex, formContainer *tview.Flex, cmdFlex *tview.Flex, suggestionDisplay *tview.TextView, cmdInput *tview.InputField) tview.Primitive {
 	form := tview.NewForm()
-	form.SetBorder(true).SetTitle(" Key Filter Update ")
+	form.SetBorder(true).SetTitle(" Key Update ")
 
 	keyInput := tview.NewInputField().
 		SetLabel("Key: ").
@@ -121,20 +121,6 @@ func KeyFilterUpdateForm(app *tview.Application, redis *utils.RedisConnection, l
 	keepTTLCheckbox := tview.NewCheckbox().
 		SetLabel("Keep TTL")
 	form.AddFormItem(keepTTLCheckbox)
-
-	// Create a modal-like overlay
-	overlay := tview.NewFlex().SetDirection(tview.FlexRow)
-	overlay.SetBackgroundColor(tcell.ColorBlack)
-
-	// Center the form
-	centeredForm := tview.NewFlex().SetDirection(tview.FlexColumn)
-	centeredForm.AddItem(nil, 0, 1, false)
-	centeredForm.AddItem(form, 40, 1, true)
-	centeredForm.AddItem(nil, 0, 1, false)
-
-	overlay.AddItem(nil, 0, 1, false)
-	overlay.AddItem(centeredForm, 10, 1, true)
-	overlay.AddItem(nil, 0, 1, false)
 
 	form.AddButton("Update Key", func() {
 		key := keyInput.GetText()
@@ -163,19 +149,35 @@ func KeyFilterUpdateForm(app *tview.Application, redis *utils.RedisConnection, l
 		} else {
 			logDisplay.Write([]byte(fmt.Sprintf("[green]Key '%s' updated successfully[white]\n", key)))
 			RefreshData(logDisplay, kvDisplay, redis)
-			app.SetRoot(flex, true)
-			RefreshData(logDisplay, kvDisplay, redis)  
+			formContainer.AddItem(form, 0, 1, true)
+			// formContainer.SetTitle(" Key Filter Set Form ")
+			cmdFlex.RemoveItem(kvDisplay)
+            cmdFlex.RemoveItem(suggestionDisplay)
+            cmdFlex.RemoveItem(cmdInput)
+            cmdFlex.RemoveItem(formContainer)
+			cmdFlex.AddItem(kvDisplay, 0, 1, false)
+            cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+            cmdFlex.AddItem(cmdInput, 1, 0, true)
 		}
 	})
 
 	form.AddButton("Cancel", func() {
-		app.SetRoot(flex, true)
+        formContainer.AddItem(form, 0, 1, true)
+			// formContainer.SetTitle(" Key Filter Set Form ")
+			cmdFlex.RemoveItem(kvDisplay)
+            cmdFlex.RemoveItem(suggestionDisplay)
+            cmdFlex.RemoveItem(cmdInput)
+            cmdFlex.RemoveItem(formContainer)
+			cmdFlex.AddItem(kvDisplay, 0, 1, false)
+            cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+            cmdFlex.AddItem(cmdInput, 1, 0, true)
 	})
 
-	return overlay
+	// Set a fixed size for the form
+	form.SetBorderPadding(1, 1, 1, 1)
+	return form
 }
 
-// Enhanced suggestion filtering with fuzzy search
 func enhancedFilterSuggestions(input string) []EnhancedCommandSuggestion {
 	input = strings.ToLower(strings.TrimSpace(input))
 	if input == "" {
@@ -190,14 +192,14 @@ func enhancedFilterSuggestions(input string) []EnhancedCommandSuggestion {
 	}
 	return matches
 }
-
 func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.RedisConnection) (*tview.Flex, *tview.TextView, *tview.InputField, *tview.Flex) {
 	cmdFlex := tview.NewFlex().SetDirection(tview.FlexRow)
 	
 	// Create suggestion display
 	suggestionDisplay := tview.NewTextView().
 		SetDynamicColors(true).
-		SetTextColor(tcell.ColorGray)
+		SetTextColor(tcell.ColorGray).
+        SetTextAlign(tview.AlignCenter)
 	
 	// Create key-value display
 	kvDisplay := tview.NewTextView().
@@ -206,6 +208,9 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			app.Draw()
 		})
 	kvDisplay.SetBorder(true).SetTitle(" Redis Data ")
+	
+	// Create a container for forms
+	formContainer := tview.NewFlex().SetDirection(tview.FlexRow)
 	
 	// Create command input field
 	cmdInput := tview.NewInputField().
@@ -252,18 +257,35 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 		
 		logDisplay.Write([]byte(fmt.Sprintf("> %s\n", cmd)))
 		
-		// Store the original content
-		// originalContent := kvDisplay.GetText(true)
-		
-		// Modify this part to correctly handle special commands
 		switch {
 		case cmd == "key filter set":
-			form := KeyFilterSetForm(app, redis, logDisplay, kvDisplay, mainFlex)
-			app.SetRoot(form, true)
+			form := KeyFilterSetForm(app, redis, logDisplay, kvDisplay, mainFlex, formContainer, cmdFlex, suggestionDisplay, cmdInput)
+			formContainer.Clear()
+			formContainer.AddItem(form, 0, 1, true)
+			// formContainer.SetTitle(" Key Filter Set Form ")
+			cmdFlex.RemoveItem(kvDisplay)
+            cmdFlex.RemoveItem(suggestionDisplay)
+            cmdFlex.RemoveItem(cmdInput)
+            cmdFlex.RemoveItem(formContainer)
+
+			cmdFlex.AddItem(formContainer, 0, 1, false)
+            cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+            cmdFlex.AddItem(cmdInput, 1, 0, true)
 			return
 		case cmd == "key filter update":
-			form := KeyFilterUpdateForm(app, redis, logDisplay, kvDisplay, mainFlex)
-			app.SetRoot(form, true)
+			form := KeyFilterUpdateForm(app, redis, logDisplay, kvDisplay, mainFlex, formContainer, cmdFlex, suggestionDisplay, cmdInput)
+			formContainer.Clear()
+			cmdFlex.Clear()
+			formContainer.AddItem(form, 0, 1, true)
+			// formContainer.SetTitle(" Key Filter Update Form ")
+			cmdFlex.RemoveItem(kvDisplay)
+            cmdFlex.RemoveItem(suggestionDisplay)
+            cmdFlex.RemoveItem(cmdInput)
+
+			cmdFlex.AddItem(formContainer, 0, 1, false)
+            cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
+            cmdFlex.AddItem(cmdInput, 1, 0, true)
+			
 			return
 		default:
 			result, err := redis.ExecuteCommand(cmd)
@@ -279,9 +301,9 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 	})
 	
 	// Add suggestion display and command input to the flex container
+    cmdFlex.AddItem(kvDisplay, 0, 1, false)
 	cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
 	cmdFlex.AddItem(cmdInput, 1, 0, true)
 
 	return cmdFlex, kvDisplay, cmdInput, mainFlex
 }
-
