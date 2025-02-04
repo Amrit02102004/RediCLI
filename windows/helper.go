@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
+	"github.com/gdamore/tcell/v2"
 	"strings"
 	"github.com/Amrit02102004/RediCLI/utils"
 	
@@ -298,6 +299,34 @@ func KeyFilterSetForm(app *tview.Application, redis *utils.RedisConnection, logD
 		SetAcceptanceFunc(tview.InputFieldInteger)
 	form.AddFormItem(ttlInput)
 
+	// Slice to track focusable items in order
+	var focusableItems []tview.Primitive
+
+	// Populate focusable items
+	focusableItems = append(focusableItems, keyInput, valueInput, ttlInput)
+
+	// Custom input capture to handle tab navigation
+	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyTab {
+			// Find the current focused item
+			currentIndex := -1
+			for i, item := range focusableItems {
+				if item.HasFocus() {
+					currentIndex = i
+					break
+				}
+			}
+
+			// Move to the next item
+			if currentIndex != -1 {
+				nextIndex := (currentIndex + 1) % len(focusableItems)
+				app.SetFocus(focusableItems[nextIndex])
+			}
+			return nil
+		}
+		return event
+	})
+
 	form.AddButton("Set Key", func() {
 		key := keyInput.GetText()
 		value := valueInput.GetText()
@@ -325,7 +354,6 @@ func KeyFilterSetForm(app *tview.Application, redis *utils.RedisConnection, logD
 			logDisplay.Write([]byte(fmt.Sprintf("[green]Key '%s' set successfully with TTL %v[white]\n", key, ttl)))
 			RefreshData(logDisplay, kvDisplay, redis)
 			formContainer.AddItem(form, 0, 1, true)
-			// formContainer.SetTitle(" Key Filter Set Form ")
 			cmdFlex.RemoveItem(kvDisplay)
 			cmdFlex.RemoveItem(suggestionDisplay)
 			cmdFlex.RemoveItem(cmdInput)
@@ -338,7 +366,6 @@ func KeyFilterSetForm(app *tview.Application, redis *utils.RedisConnection, logD
 
 	form.AddButton("Cancel", func() {
 		formContainer.AddItem(form, 0, 1, true)
-		// formContainer.SetTitle(" Key Filter Set Form ")
 		cmdFlex.RemoveItem(kvDisplay)
 		cmdFlex.RemoveItem(suggestionDisplay)
 		cmdFlex.RemoveItem(cmdInput)
@@ -348,7 +375,6 @@ func KeyFilterSetForm(app *tview.Application, redis *utils.RedisConnection, logD
 		cmdFlex.AddItem(cmdInput, 1, 0, true)
 	})
 
-	// Set a fixed size for the form
 	form.SetBorderPadding(1, 1, 1, 1)
 	return form
 }
@@ -370,6 +396,34 @@ func KeyFilterUpdateForm(app *tview.Application, redis *utils.RedisConnection, l
 	keepTTLCheckbox := tview.NewCheckbox().
 		SetLabel("Keep TTL")
 	form.AddFormItem(keepTTLCheckbox)
+
+	// Slice to track focusable items in order
+	var focusableItems []tview.Primitive
+
+	// Populate focusable items
+	focusableItems = append(focusableItems, keyInput, valueInput, keepTTLCheckbox)
+
+	// Custom input capture to handle tab navigation
+	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyTab {
+			// Find the current focused item
+			currentIndex := -1
+			for i, item := range focusableItems {
+				if item.HasFocus() {
+					currentIndex = i
+					break
+				}
+			}
+
+			// Move to the next item
+			if currentIndex != -1 {
+				nextIndex := (currentIndex + 1) % len(focusableItems)
+				app.SetFocus(focusableItems[nextIndex])
+			}
+			return nil
+		}
+		return event
+	})
 
 	form.AddButton("Update Key", func() {
 		key := keyInput.GetText()
@@ -399,7 +453,6 @@ func KeyFilterUpdateForm(app *tview.Application, redis *utils.RedisConnection, l
 			logDisplay.Write([]byte(fmt.Sprintf("[green]Key '%s' updated successfully[white]\n", key)))
 			RefreshData(logDisplay, kvDisplay, redis)
 			formContainer.AddItem(form, 0, 1, true)
-			// formContainer.SetTitle(" Key Filter Set Form ")
 			cmdFlex.RemoveItem(kvDisplay)
 			cmdFlex.RemoveItem(suggestionDisplay)
 			cmdFlex.RemoveItem(cmdInput)
@@ -412,7 +465,6 @@ func KeyFilterUpdateForm(app *tview.Application, redis *utils.RedisConnection, l
 
 	form.AddButton("Cancel", func() {
 		formContainer.AddItem(form, 0, 1, true)
-		// formContainer.SetTitle(" Key Filter Set Form ")
 		cmdFlex.RemoveItem(kvDisplay)
 		cmdFlex.RemoveItem(suggestionDisplay)
 		cmdFlex.RemoveItem(cmdInput)
@@ -422,7 +474,6 @@ func KeyFilterUpdateForm(app *tview.Application, redis *utils.RedisConnection, l
 		cmdFlex.AddItem(cmdInput, 1, 0, true)
 	})
 
-	// Set a fixed size for the form
 	form.SetBorderPadding(1, 1, 1, 1)
 	return form
 }
