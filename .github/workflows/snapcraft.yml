@@ -19,6 +19,8 @@ jobs:
       # Step 2: Build the Snap package
       - uses: snapcore/action-build@v1
         id: build
+        env:
+          SNAPCRAFT_PROJECT_PATH: ./  # Path to your snapcraft.yaml file (root directory)
 
       # Step 3: Publish the Snap package to Snap Store
       - uses: snapcore/action-publish@v1
