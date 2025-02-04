@@ -441,3 +441,4 @@ func enhancedFilterSuggestions(input string) []EnhancedCommandSuggestion {
 	}
 	return matches
 }
+

@@ -16,7 +16,6 @@ type EnhancedCommandSuggestion struct {
 	category    string
 }
 
-
 var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
 	{"see analytics", "Open analytics dashboard in browser", "Advanced"},
 	{"flushall", "Delete all existing keys from Redis (USE WITH CAUTION)", "Advanced"},
@@ -76,11 +75,42 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			suggestionDisplay.SetText("")
 		}
 	})
+	commandHistory := []string{}
+	currentHistoryIndex := -1
 
+	// Modify the SetInputCapture function in Win3
 	cmdInput.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyTab && len(currentSuggestions) > 0 {
-			currentSuggestionIndex = (currentSuggestionIndex + 1) % len(currentSuggestions)
-			cmdInput.SetText(currentSuggestions[currentSuggestionIndex].command)
+		switch event.Key() {
+		case tcell.KeyTab:
+			if len(currentSuggestions) > 0 {
+				currentSuggestionIndex = (currentSuggestionIndex + 1) % len(currentSuggestions)
+				cmdInput.SetText(currentSuggestions[currentSuggestionIndex].command)
+				return nil
+			}
+		case tcell.KeyUp:
+			// Ensure we can access the last command
+			if len(commandHistory) > 0 {
+				if currentHistoryIndex == -1 {
+					// First time pressing up, show the most recent command
+					currentHistoryIndex = 0
+				} else if currentHistoryIndex < len(commandHistory)-1 {
+					// Move to the next older command
+					currentHistoryIndex++
+				}
+				cmdInput.SetText(commandHistory[currentHistoryIndex])
+			}
+			return nil
+		case tcell.KeyDown:
+			// Navigate command history down
+			if currentHistoryIndex > -1 {
+				currentHistoryIndex--
+				if currentHistoryIndex >= 0 {
+					cmdInput.SetText(commandHistory[currentHistoryIndex])
+				} else {
+					currentHistoryIndex = -1
+					cmdInput.SetText("")
+				}
+			}
 			return nil
 		}
 		return event
@@ -99,6 +129,19 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			return
 		}
 
+		// Add command to history if it's not a repeat of the last command
+		if len(commandHistory) == 0 || cmd != commandHistory[0] {
+			commandHistory = append([]string{cmd}, commandHistory...)
+
+			// Limit history size (optional)
+			if len(commandHistory) > 50 {
+				commandHistory = commandHistory[:50]
+			}
+		}
+
+		// Reset history index
+		currentHistoryIndex = -1
+
 		logDisplay.Write([]byte(fmt.Sprintf("> %s\n", cmd)))
 
 		switch {
@@ -110,7 +153,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				}
 			}()
 			logDisplay.Write([]byte("[green]Analytics server started on http://localhost:8080[white]\n"))
-			return 
+			return
 
 		case cmd == "flushall":
 			// Add confirmation dialog
@@ -131,13 +174,13 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				})
 			app.SetRoot(modal, false)
 		case cmd == "clear all":
-			Clear(kvDisplay , logDisplay , 1 , 1)
+			Clear(kvDisplay, logDisplay, 1, 1)
 			return
 		case cmd == "clear logs":
-			Clear(kvDisplay, logDisplay , 0 ,1)
+			Clear(kvDisplay, logDisplay, 0, 1)
 			return
 		case cmd == "clear display":
-			Clear(kvDisplay, logDisplay,1,0)
+			Clear(kvDisplay, logDisplay, 1, 0)
 			return
 
 		case cmd == "key filter set":
