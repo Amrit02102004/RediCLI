@@ -178,6 +178,7 @@ func ExportForm(app *tview.Application, redis *utils.RedisConnection, kvDisplay 
 }
 
 var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
+	{"see analytics", "Open analytics dashboard in browser", "Advanced"},
 	{"flushall", "Delete all existing keys from Redis (USE WITH CAUTION)", "Advanced"},
 	{"key filter set", "Open key set form with TTL in milliseconds", "Advanced"},
 	{"key filter update", "Open key update form with KEEPTTL option", "Advanced"},
@@ -422,6 +423,16 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 		logDisplay.Write([]byte(fmt.Sprintf("> %s\n", cmd)))
 
 		switch {
+		case cmd == "see analytics":
+			go func() {
+				err := redis.ServeAnalytics()
+				if err != nil {
+					logDisplay.Write([]byte(fmt.Sprintf("[red]Analytics Server Error:[white] %v\n", err)))
+				}
+			}()
+			logDisplay.Write([]byte("[green]Analytics server started on http://localhost:8080[white]\n"))
+			return 
+
 		case cmd == "flushall":
 			// Add confirmation dialog
 			modal := tview.NewModal().
