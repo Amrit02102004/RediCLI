@@ -5,6 +5,7 @@ import (
     "fmt"
     "strings"
     "time"
+    "sort"
     
     "github.com/redis/go-redis/v9"
 )
@@ -185,3 +186,92 @@ func (rc *RedisConnection) FlushAll() error {
     
     return nil
 }
+
+// In utils/redis.go, add these methods to RedisConnection struct
+
+type KeyMemoryInfo struct {
+    Key   string
+    Bytes int64
+}
+
+func (rc *RedisConnection) GetStats() (map[string]interface{}, error) {
+    if rc.client == nil {
+        return nil, fmt.Errorf("not connected to Redis")
+    }
+
+    stats := make(map[string]interface{})
+    
+    // Get INFO stats
+    info, err := rc.client.Info(rc.ctx, "stats").Result()
+    if err != nil {
+        return nil, fmt.Errorf("error getting Redis stats: %v", err)
+    }
+
+    // Parse keyspace hits and misses
+    var keyspaceHits, keyspaceMisses int64
+    for _, line := range strings.Split(info, "\n") {
+        if strings.HasPrefix(line, "keyspace_hits:") {
+            fmt.Sscanf(line, "keyspace_hits:%d", &keyspaceHits)
+        }
+        if strings.HasPrefix(line, "keyspace_misses:") {
+            fmt.Sscanf(line, "keyspace_misses:%d", &keyspaceMisses)
+        }
+    }
+
+    // Calculate hit ratio
+    hitRatio := float64(0)
+    if total := keyspaceHits + keyspaceMisses; total > 0 {
+        hitRatio = float64(keyspaceHits) / float64(total) * 100
+    }
+    stats["hit_ratio"] = hitRatio
+    stats["total_hits"] = keyspaceHits
+    stats["total_misses"] = keyspaceMisses
+
+    // Get total keys
+    dbSize, err := rc.client.DBSize(rc.ctx).Result()
+    if err != nil {
+        return nil, fmt.Errorf("error getting DB size: %v", err)
+    }
+    stats["total_keys"] = dbSize
+
+    // Get keys with TTL
+    keysWithTTL := int64(0)
+    keys, err := rc.client.Keys(rc.ctx, "*").Result()
+    if err != nil {
+        return nil, fmt.Errorf("error getting keys: %v", err)
+    }
+
+    for _, key := range keys {
+        ttl, err := rc.client.TTL(rc.ctx, key).Result()
+        if err == nil && ttl > 0 {
+            keysWithTTL++
+        }
+    }
+    stats["expiring_keys"] = keysWithTTL
+
+    // Get memory stats for each key
+    var topMemoryKeys []KeyMemoryInfo
+
+    for _, key := range keys {
+        memory, err := rc.client.MemoryUsage(rc.ctx, key).Result()
+        if err == nil {
+            topMemoryKeys = append(topMemoryKeys, KeyMemoryInfo{
+                Key:   key,
+                Bytes: memory,
+            })
+        }
+    }
+
+    // Sort by memory usage and get top 5
+    sort.Slice(topMemoryKeys, func(i, j int) bool {
+        return topMemoryKeys[i].Bytes > topMemoryKeys[j].Bytes
+    })
+
+    if len(topMemoryKeys) > 5 {
+        topMemoryKeys = topMemoryKeys[:5]
+    }
+    stats["top_memory_keys"] = topMemoryKeys
+
+    return stats, nil
+}
+

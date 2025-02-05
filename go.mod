@@ -9,6 +9,7 @@ require (
 	github.com/redis/go-redis/v9 v9.7.0
 	github.com/rivo/tview v0.0.0-20241227133733-17b7edb88c57
 	github.com/xuri/excelize/v2 v2.9.0
+	github.com/yuin/gopher-lua v1.1.1
 )
 
 require (

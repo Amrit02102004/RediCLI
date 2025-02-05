@@ -130,14 +130,14 @@ func DisplayWelcomeMessage(kvDisplay *tview.TextView) {
 }
 
 func Clear(kvDisplay *tview.TextView, logDisplay *tview.TextView, x int, y int) {
-    if x == 1 {
-        kvDisplay.Clear()
-        kvDisplay.SetTextAlign(tview.AlignCenter)
-        DisplayWelcomeMessage(kvDisplay)
-    }
-    if y == 1 {
-        logDisplay.Clear()
-    }
+	if x == 1 {
+		kvDisplay.Clear()
+		kvDisplay.SetTextAlign(tview.AlignCenter)
+		DisplayWelcomeMessage(kvDisplay)
+	}
+	if y == 1 {
+		logDisplay.Clear()
+	}
 }
 
 // DisplayHelp shows all available commands and their descriptions
@@ -495,4 +495,34 @@ func enhancedFilterSuggestions(input string) []EnhancedCommandSuggestion {
 		}
 	}
 	return matches
+}
+
+func DisplaySummary(kvDisplay *tview.TextView, stats map[string]interface{}) {
+	var sb strings.Builder
+
+	sb.WriteString("[green]Redis Server Summary[white]\n")
+	sb.WriteString("==================\n\n")
+
+	// Performance Stats
+	sb.WriteString("[yellow]Performance Statistics:[white]\n")
+	sb.WriteString(fmt.Sprintf("Hit Ratio: %.2f%%\n", stats["hit_ratio"].(float64)))
+	sb.WriteString(fmt.Sprintf("Total Hits: %d\n", stats["total_hits"].(int64)))
+	sb.WriteString(fmt.Sprintf("Total Misses: %d\n", stats["total_misses"].(int64)))
+	sb.WriteString("\n")
+
+	// Key Statistics
+	sb.WriteString("[yellow]Key Statistics:[white]\n")
+	sb.WriteString(fmt.Sprintf("Total Keys: %d\n", stats["total_keys"].(int64)))
+	sb.WriteString(fmt.Sprintf("Keys with TTL: %d\n", stats["expiring_keys"].(int64)))
+	sb.WriteString("\n")
+
+	// Memory Usage
+	sb.WriteString("[yellow]Top Memory Usage Keys:[white]\n")
+	if topKeys, ok := stats["top_memory_keys"].([]utils.KeyMemoryInfo); ok {
+		for _, km := range topKeys {
+			sb.WriteString(fmt.Sprintf("• %s: %d B\n", km.Key, km.Bytes))
+		}
+	}
+
+	kvDisplay.SetText(sb.String()).SetTextAlign(tview.AlignLeft)
 }
