@@ -401,3 +401,76 @@ func updateTTL(redis *utils.RedisConnection, key, ttlStr string) error {
 	// Update TTL
 	return redis.SetKeyWithTTL(key, value, ttl)
 }
+
+
+type DeleteQuery struct {
+	ConnectionName string
+	Condition     *QueryCondition
+}
+
+// ParseDeleteQuery parses a delete query string
+func ParseDeleteQuery(query string) (*DeleteQuery, error) {
+	query = strings.TrimSpace(strings.ToLower(query))
+	if !strings.HasPrefix(query, "del from") {
+		return nil, fmt.Errorf("query must start with 'del from'")
+	}
+
+	deleteQuery := &DeleteQuery{}
+
+	// Split into main parts: DEL FROM connection WHERE conditions
+	parts := strings.Split(query, "where")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid delete query format, missing WHERE clause")
+	}
+
+	// Parse connection name
+	connectionParts := strings.Fields(parts[0])
+	if len(connectionParts) < 3 {
+		return nil, fmt.Errorf("missing connection name")
+	}
+	deleteQuery.ConnectionName = connectionParts[2]
+
+	// Parse WHERE clause using existing QueryCondition parser
+	whereClause := strings.TrimSpace(parts[1])
+	condition, err := ParseQuery("select from " + deleteQuery.ConnectionName + " where " + whereClause)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing WHERE clause: %v", err)
+	}
+	deleteQuery.Condition = condition
+
+	return deleteQuery, nil
+}
+
+// ExecuteDeleteQuery executes the delete query and returns a confirmation function along with matched keys
+func ExecuteDeleteQuery(redis *utils.RedisConnection, deleteQuery *DeleteQuery) (confirmFunc func() (int, error), matchedKeys []string, err error) {
+    if !redis.IsConnected() {
+        return nil, nil, fmt.Errorf("not connected to Redis")
+    }
+
+    // First get all matching keys based on the condition
+    matches, err := ExecuteQuery(redis, deleteQuery.Condition)
+    if err != nil {
+        return nil, nil, err
+    }
+
+    // Get list of keys that would be deleted
+    matchedKeys = make([]string, 0, len(matches))
+    for key := range matches {
+        matchedKeys = append(matchedKeys, key)
+    }
+
+    // Return confirmation function
+    confirmFunc = func() (int, error) {
+        deletedCount := 0
+        for _, key := range matchedKeys {
+            _, err := redis.ExecuteCommand(fmt.Sprintf("del %s", key))
+            if err != nil {
+                continue
+            }
+            deletedCount++
+        }
+        return deletedCount, nil
+    }
+
+    return confirmFunc, matchedKeys, nil
+}

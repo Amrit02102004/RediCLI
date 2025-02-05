@@ -376,7 +376,59 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			RefreshData(logDisplay, kvDisplay, redis)
 			cmdInput.SetText("")
 			return
+		case strings.HasPrefix(cmd, "del from"):
+			deleteQuery, err := ParseDeleteQuery(cmd)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Delete Query Error:[white] %v\n", err)))
+				cmdInput.SetText("")
+				return
+			}
 		
+			// If a different connection is specified, connect to it
+			if deleteQuery.ConnectionName != "" {
+				config, err := FindConnectionByName(deleteQuery.ConnectionName)
+				if err != nil {
+					logDisplay.Write([]byte(fmt.Sprintf("[red]Connection Error:[white] %v\n", err)))
+					cmdInput.SetText("")
+					return
+				}
+		
+				err = redis.Connect(config.Host, config.Port)
+				if err != nil {
+					logDisplay.Write([]byte(fmt.Sprintf("[red]Connection Error:[white] %v\n", err)))
+					cmdInput.SetText("")
+					return
+				}
+			}
+		
+			// Get confirmation function and matched keys
+			confirmFunc, matchedKeys, err := ExecuteDeleteQuery(redis, deleteQuery)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Delete Error:[white] %v\n", err)))
+				cmdInput.SetText("")
+				return
+			}
+		
+			// Show confirmation modal with matched keys
+			keysList := strings.Join(matchedKeys, "\n")
+			modal := tview.NewModal().
+				SetText(fmt.Sprintf("Are you sure you want to delete these %d keys?\n\n%s", len(matchedKeys), keysList)).
+				AddButtons([]string{"Yes", "No"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					if buttonLabel == "Yes" {
+						deletedCount, err := confirmFunc()
+						if err != nil {
+							logDisplay.Write([]byte(fmt.Sprintf("[red]Delete Error:[white] %v\n", err)))
+						} else {
+							logDisplay.Write([]byte(fmt.Sprintf("[green]Successfully deleted %d keys[white]\n", deletedCount)))
+						}
+						RefreshData(logDisplay, kvDisplay, redis)
+					}
+					app.SetRoot(mainFlex, true)
+					cmdInput.SetText("")
+				})
+			app.SetRoot(modal, false)
+			return
 		case cmd == "flushall":
 			// Add confirmation dialog
 			modal := tview.NewModal().
