@@ -20,6 +20,7 @@ type EnhancedCommandSuggestion struct {
 }
 
 var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
+	{"lua.start", "Open Lua script editor and debugger", "Advanced"},	
 	{"quit", "Exit the RediCLI application", "Basic"},
 	{"see analytics", "Open analytics dashboard in browser", "Advanced"},
 	{"flushall", "Delete all existing keys from Redis (USE WITH CAUTION)", "Advanced"},
@@ -536,6 +537,12 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			cmdFlex.AddItem(kvDisplay, 0, 1, false)
 			cmdFlex.AddItem(suggestionDisplay, 3, 0, false)
 			cmdFlex.AddItem(cmdInput, 1, 0, true)
+			cmdInput.SetText("")
+			return
+
+		case cmd == "lua.start":
+			editor := NewLuaEditor(app, redis, cmdFlex, kvDisplay)
+			app.SetRoot(editor, true)
 			cmdInput.SetText("")
 			return
 
