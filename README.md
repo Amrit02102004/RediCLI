@@ -1,6 +1,6 @@
 # RediCLI
 
-![Image](https://github.com/user-attachments/assets/e2b791a0-e23c-48b3-ac90-510296a9aa8c)
+![Image](https://github.com/user-attachments/assets/533962e4-c3cb-4190-96ff-8c472c3b6060)
 
 A powerful Terminal User Interface (TUI) for Redis, built with Go. RediCLI provides an intuitive, interactive way to manage your Redis databases with features like command suggestions, data import/export, and connection management.
 
