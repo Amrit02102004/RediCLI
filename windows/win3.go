@@ -3,9 +3,9 @@ package windows
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"time"
-	"os"
 
 	"github.com/Amrit02102004/RediCLI/utils"
 	"github.com/gdamore/tcell/v2"
@@ -20,7 +20,7 @@ type EnhancedCommandSuggestion struct {
 }
 
 var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
-	{"lua.start", "Open Lua script editor and debugger", "Advanced"},	
+	{"lua.start", "Open Lua script editor and debugger", "Advanced"},
 	{"quit", "Exit the RediCLI application", "Basic"},
 	{"see analytics", "Open analytics dashboard in browser", "Advanced"},
 	{"flushall", "Delete all existing keys from Redis (USE WITH CAUTION)", "Advanced"},
@@ -43,6 +43,9 @@ var enhancedCommandSuggestions = []EnhancedCommandSuggestion{
 	{"connect", "Connect to a saved Redis connection by name", "Connection Management"},
 	{"del connection", "Delete a specific saved Redis connection", "Connection Management"},
 	{"del all connections", "Delete all saved Redis connections", "Connection Management"},
+	{"select from", "Query Redis keys with conditions (e.g., TTL, value pattern)", "Query"},
+	{"update", "Update Redis keys matching conditions (value/key/ttl)", "Query"},
+	{"del from", "Delete Redis keys matching conditions", "Query"},
 }
 
 func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.RedisConnection) (*tview.Flex, *tview.TextView, *tview.InputField, *tview.Flex) {
@@ -254,7 +257,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			RefreshData(logDisplay, kvDisplay, redis)
 			return
 		}
-		
+
 		if strings.HasPrefix(cmd, "export .") {
 			// Extract the file path
 			filePath := strings.TrimSpace(strings.TrimPrefix(cmd, "export"))
@@ -296,7 +299,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				cmdInput.SetText("")
 				return
 			}
-		
+
 			// If a different connection is specified, connect to it
 			if condition.ConnectionName != "" {
 				config, err := FindConnectionByName(condition.ConnectionName)
@@ -305,7 +308,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 					cmdInput.SetText("")
 					return
 				}
-		
+
 				err = redis.Connect(config.Host, config.Port)
 				if err != nil {
 					logDisplay.Write([]byte(fmt.Sprintf("[red]Connection Error:[white] %v\n", err)))
@@ -313,18 +316,18 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 					return
 				}
 			}
-		
+
 			results, err := ExecuteQuery(redis, condition)
 			if err != nil {
 				logDisplay.Write([]byte(fmt.Sprintf("[red]Query Error:[white] %v\n", err)))
 				cmdInput.SetText("")
 				return
 			}
-		
+
 			// Display results
 			var displayText strings.Builder
 			displayText.WriteString("[green]Query Results:[white]\n\n")
-			
+
 			if len(results) == 0 {
 				displayText.WriteString("No matching keys found.\n")
 			} else {
@@ -335,7 +338,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 					displayText.WriteString(fmt.Sprintf("[yellow]TTL:[white] %v\n\n", ttl))
 				}
 			}
-		
+
 			kvDisplay.Clear()
 			kvDisplay.SetText(displayText.String()).SetTextAlign(tview.AlignLeft)
 			cmdInput.SetText("")
@@ -347,7 +350,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				cmdInput.SetText("")
 				return
 			}
-		
+
 			// If a different connection is specified, connect to it
 			if updateQuery.ConnectionName != "" {
 				config, err := FindConnectionByName(updateQuery.ConnectionName)
@@ -356,7 +359,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 					cmdInput.SetText("")
 					return
 				}
-		
+
 				err = redis.Connect(config.Host, config.Port)
 				if err != nil {
 					logDisplay.Write([]byte(fmt.Sprintf("[red]Connection Error:[white] %v\n", err)))
@@ -364,7 +367,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 					return
 				}
 			}
-		
+
 			// Execute the update
 			updatedCount, err := ExecuteUpdateQuery(redis, updateQuery)
 			if err != nil {
@@ -372,7 +375,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				cmdInput.SetText("")
 				return
 			}
-		
+
 			logDisplay.Write([]byte(fmt.Sprintf("[green]Successfully updated %d keys[white]\n", updatedCount)))
 			RefreshData(logDisplay, kvDisplay, redis)
 			cmdInput.SetText("")
@@ -384,7 +387,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				cmdInput.SetText("")
 				return
 			}
-		
+
 			// If a different connection is specified, connect to it
 			if deleteQuery.ConnectionName != "" {
 				config, err := FindConnectionByName(deleteQuery.ConnectionName)
@@ -393,7 +396,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 					cmdInput.SetText("")
 					return
 				}
-		
+
 				err = redis.Connect(config.Host, config.Port)
 				if err != nil {
 					logDisplay.Write([]byte(fmt.Sprintf("[red]Connection Error:[white] %v\n", err)))
@@ -401,7 +404,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 					return
 				}
 			}
-		
+
 			// Get confirmation function and matched keys
 			confirmFunc, matchedKeys, err := ExecuteDeleteQuery(redis, deleteQuery)
 			if err != nil {
@@ -409,7 +412,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 				cmdInput.SetText("")
 				return
 			}
-		
+
 			// Show confirmation modal with matched keys
 			keysList := strings.Join(matchedKeys, "\n")
 			modal := tview.NewModal().
