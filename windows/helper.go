@@ -496,3 +496,34 @@ func enhancedFilterSuggestions(input string) []EnhancedCommandSuggestion {
 	}
 	return matches
 }
+
+func DisplaySummary(kvDisplay *tview.TextView, stats map[string]interface{}) {
+    var sb strings.Builder
+
+    sb.WriteString("[green]Redis Server Summary[white]\n")
+    sb.WriteString("==================\n\n")
+
+    // Performance Stats
+    sb.WriteString("[yellow]Performance Statistics:[white]\n")
+    sb.WriteString(fmt.Sprintf("Hit Ratio: %.2f%%\n", stats["hit_ratio"].(float64)))
+    sb.WriteString(fmt.Sprintf("Total Hits: %d\n", stats["total_hits"].(int64)))
+    sb.WriteString(fmt.Sprintf("Total Misses: %d\n", stats["total_misses"].(int64)))
+    sb.WriteString("\n")
+
+    // Key Statistics
+    sb.WriteString("[yellow]Key Statistics:[white]\n")
+    sb.WriteString(fmt.Sprintf("Total Keys: %d\n", stats["total_keys"].(int64)))
+    sb.WriteString(fmt.Sprintf("Keys with TTL: %d\n", stats["expiring_keys"].(int64)))
+    sb.WriteString("\n")
+
+    // Memory Usage
+    sb.WriteString("[yellow]Top Memory Usage Keys:[white]\n")
+    if topKeys, ok := stats["top_memory_keys"].([]utils.KeyMemoryInfo); ok {
+        for _, km := range topKeys {
+            memoryMB := float64(km.Bytes) / 1024 / 1024
+            sb.WriteString(fmt.Sprintf("• %s: %.2f MB\n", km.Key, memoryMB))
+        }
+    }
+
+    kvDisplay.SetText(sb.String()).SetTextAlign(tview.AlignLeft)
+}

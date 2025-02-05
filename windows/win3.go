@@ -483,7 +483,16 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			cmdFlex.AddItem(cmdInput, 1, 0, true)
 			cmdInput.SetText("")
 			return
-
+		case cmd == "summary":
+			stats, err := redis.GetStats()
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Error getting Redis stats:[white] %v\n", err)))
+				cmdInput.SetText("")
+				return
+			}
+			DisplaySummary(kvDisplay, stats)
+			cmdInput.SetText("")
+			return
 		case cmd == "key filter update":
 			form := KeyFilterUpdateForm(app, redis, logDisplay, kvDisplay, mainFlex, formContainer, cmdFlex, suggestionDisplay, cmdInput)
 			formContainer.Clear()
