@@ -339,6 +339,44 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			kvDisplay.SetText(displayText.String()).SetTextAlign(tview.AlignLeft)
 			cmdInput.SetText("")
 			return
+		case strings.HasPrefix(cmd, "update"):
+			updateQuery, err := ParseUpdateQuery(cmd)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Update Query Error:[white] %v\n", err)))
+				cmdInput.SetText("")
+				return
+			}
+		
+			// If a different connection is specified, connect to it
+			if updateQuery.ConnectionName != "" {
+				config, err := FindConnectionByName(updateQuery.ConnectionName)
+				if err != nil {
+					logDisplay.Write([]byte(fmt.Sprintf("[red]Connection Error:[white] %v\n", err)))
+					cmdInput.SetText("")
+					return
+				}
+		
+				err = redis.Connect(config.Host, config.Port)
+				if err != nil {
+					logDisplay.Write([]byte(fmt.Sprintf("[red]Connection Error:[white] %v\n", err)))
+					cmdInput.SetText("")
+					return
+				}
+			}
+		
+			// Execute the update
+			updatedCount, err := ExecuteUpdateQuery(redis, updateQuery)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Update Error:[white] %v\n", err)))
+				cmdInput.SetText("")
+				return
+			}
+		
+			logDisplay.Write([]byte(fmt.Sprintf("[green]Successfully updated %d keys[white]\n", updatedCount)))
+			RefreshData(logDisplay, kvDisplay, redis)
+			cmdInput.SetText("")
+			return
+		
 		case cmd == "flushall":
 			// Add confirmation dialog
 			modal := tview.NewModal().

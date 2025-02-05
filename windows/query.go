@@ -227,3 +227,177 @@ func ExecuteQuery(redis *utils.RedisConnection, condition *QueryCondition) (map[
 
 	return results, nil
 }
+
+type UpdateType int
+
+const (
+	UpdateValue UpdateType = iota
+	UpdateKey
+	UpdateTTL
+)
+
+type UpdateQuery struct {
+	ConnectionName string
+	UpdateType    UpdateType
+	NewValue      string
+	Condition     *QueryCondition
+}
+
+// ParseUpdateQuery parses an update query string
+func ParseUpdateQuery(query string) (*UpdateQuery, error) {
+	query = strings.TrimSpace(strings.ToLower(query))
+	if !strings.HasPrefix(query, "update") {
+		return nil, fmt.Errorf("query must start with 'update'")
+	}
+
+	updateQuery := &UpdateQuery{}
+
+	// Split into main parts: UPDATE connection SET type = value WHERE conditions
+	parts := strings.Split(query, "set")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid update query format, missing SET clause")
+	}
+
+	// Parse connection name
+	connectionParts := strings.Fields(parts[0])
+	if len(connectionParts) < 2 {
+		return nil, fmt.Errorf("missing connection name")
+	}
+	updateQuery.ConnectionName = connectionParts[1]
+
+	// Split SET and WHERE clauses
+	setAndWhere := strings.Split(parts[1], "where")
+	if len(setAndWhere) != 2 {
+		return nil, fmt.Errorf("missing WHERE clause")
+	}
+
+	// Parse SET clause
+	setClause := strings.TrimSpace(setAndWhere[0])
+	if err := parseSetClause(setClause, updateQuery); err != nil {
+		return nil, err
+	}
+
+	// Parse WHERE clause using existing QueryCondition parser
+	whereClause := strings.TrimSpace(setAndWhere[1])
+	condition, err := ParseQuery("select from " + updateQuery.ConnectionName + " where " + whereClause)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing WHERE clause: %v", err)
+	}
+	updateQuery.Condition = condition
+
+	return updateQuery, nil
+}
+
+func parseSetClause(setClause string, updateQuery *UpdateQuery) error {
+	setParts := strings.Split(setClause, "=")
+	if len(setParts) != 2 {
+		return fmt.Errorf("invalid SET clause format")
+	}
+
+	updateType := strings.TrimSpace(setParts[0])
+	newValue := strings.TrimSpace(setParts[1])
+	newValue = strings.Trim(newValue, "'\"") // Remove quotes if present
+
+	switch updateType {
+	case "value":
+		updateQuery.UpdateType = UpdateValue
+	case "key":
+		updateQuery.UpdateType = UpdateKey
+	case "ttl":
+		updateQuery.UpdateType = UpdateTTL
+	default:
+		return fmt.Errorf("invalid update type: %s", updateType)
+	}
+
+	updateQuery.NewValue = newValue
+	return nil
+}
+
+// ExecuteUpdateQuery executes the update query
+func ExecuteUpdateQuery(redis *utils.RedisConnection, query *UpdateQuery) (int, error) {
+	if !redis.IsConnected() {
+		return 0, fmt.Errorf("not connected to Redis")
+	}
+
+	// First get all matching keys based on the condition
+	matches, err := ExecuteQuery(redis, query.Condition)
+	if err != nil {
+		return 0, err
+	}
+
+	updatedCount := 0
+
+	// Process each matching key
+	for key := range matches {
+		switch query.UpdateType {
+		case UpdateValue:
+			err = updateValue(redis, key, query.NewValue)
+		case UpdateKey:
+			err = updateKey(redis, key, query.NewValue)
+		case UpdateTTL:
+			err = updateTTL(redis, key, query.NewValue)
+		}
+
+		if err != nil {
+			continue // Skip to next key if there's an error
+		}
+		updatedCount++
+	}
+
+	return updatedCount, nil
+}
+
+func updateValue(redis *utils.RedisConnection, key, newValue string) error {
+	// Get current TTL
+	ttl, err := redis.GetTTL(key)
+	if err != nil {
+		return err
+	}
+
+	// Update value while preserving TTL
+	return redis.SetKeyWithTTL(key, newValue, ttl)
+}
+
+func updateKey(redis *utils.RedisConnection, oldKey, newKey string) error {
+	// Get current value
+	value, err := redis.GetValue(oldKey)
+	if err != nil {
+		return err
+	}
+
+	// Get current TTL
+	ttl, err := redis.GetTTL(oldKey)
+	if err != nil {
+		return err
+	}
+
+	// Set new key with same value and TTL
+	err = redis.SetKeyWithTTL(newKey, value, ttl)
+	if err != nil {
+		return err
+	}
+
+	// Delete old key
+	_, err = redis.ExecuteCommand(fmt.Sprintf("del %s", oldKey))
+	return err
+}
+
+func updateTTL(redis *utils.RedisConnection, key, ttlStr string) error {
+	// Parse TTL value (in milliseconds)
+	ttlMs, err := strconv.ParseInt(ttlStr, 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid TTL value: %v", err)
+	}
+
+	// Convert to duration
+	ttl := time.Duration(ttlMs) * time.Millisecond
+
+	// Get current value
+	value, err := redis.GetValue(key)
+	if err != nil {
+		return err
+	}
+
+	// Update TTL
+	return redis.SetKeyWithTTL(key, value, ttl)
+}
