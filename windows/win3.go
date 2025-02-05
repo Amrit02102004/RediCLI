@@ -253,7 +253,7 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			RefreshData(logDisplay, kvDisplay, redis)
 			return
 		}
-
+		
 		if strings.HasPrefix(cmd, "export .") {
 			// Extract the file path
 			filePath := strings.TrimSpace(strings.TrimPrefix(cmd, "export"))
@@ -288,7 +288,57 @@ func Win3(app *tview.Application, logDisplay *tview.TextView, redis *utils.Redis
 			logDisplay.Write([]byte("[green]Analytics server started on http://localhost:8080[white]\n"))
 			cmdInput.SetText("")
 			return
-
+		case strings.HasPrefix(cmd, "select from"):
+			condition, err := ParseQuery(cmd)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Query Error:[white] %v\n", err)))
+				cmdInput.SetText("")
+				return
+			}
+		
+			// If a different connection is specified, connect to it
+			if condition.ConnectionName != "" {
+				config, err := FindConnectionByName(condition.ConnectionName)
+				if err != nil {
+					logDisplay.Write([]byte(fmt.Sprintf("[red]Connection Error:[white] %v\n", err)))
+					cmdInput.SetText("")
+					return
+				}
+		
+				err = redis.Connect(config.Host, config.Port)
+				if err != nil {
+					logDisplay.Write([]byte(fmt.Sprintf("[red]Connection Error:[white] %v\n", err)))
+					cmdInput.SetText("")
+					return
+				}
+			}
+		
+			results, err := ExecuteQuery(redis, condition)
+			if err != nil {
+				logDisplay.Write([]byte(fmt.Sprintf("[red]Query Error:[white] %v\n", err)))
+				cmdInput.SetText("")
+				return
+			}
+		
+			// Display results
+			var displayText strings.Builder
+			displayText.WriteString("[green]Query Results:[white]\n\n")
+			
+			if len(results) == 0 {
+				displayText.WriteString("No matching keys found.\n")
+			} else {
+				for key, value := range results {
+					ttl, _ := redis.GetTTL(key)
+					displayText.WriteString(fmt.Sprintf("[yellow]Key:[white] %s\n", key))
+					displayText.WriteString(fmt.Sprintf("[yellow]Value:[white] %s\n", value))
+					displayText.WriteString(fmt.Sprintf("[yellow]TTL:[white] %v\n\n", ttl))
+				}
+			}
+		
+			kvDisplay.Clear()
+			kvDisplay.SetText(displayText.String()).SetTextAlign(tview.AlignLeft)
+			cmdInput.SetText("")
+			return
 		case cmd == "flushall":
 			// Add confirmation dialog
 			modal := tview.NewModal().
